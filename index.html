@@ -80,10 +80,10 @@ button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit
 
 /* TABLE */
 .twrap{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:.8rem;min-width:1060px}
-th{padding:9px 11px;text-align:left;font-size:.6rem;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.88);font-weight:700;white-space:nowrap;background:linear-gradient(135deg,#0d1b3e,#1a3a6e)}
+table{width:100%;border-collapse:collapse;font-size:.8rem;min-width:1420px}
+th{padding:9px 9px;text-align:left;font-size:.6rem;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.88);font-weight:700;white-space:nowrap;background:linear-gradient(135deg,#0d1b3e,#1a3a6e)}
 th.r,td.r{text-align:right}
-td{padding:10px 11px;border-bottom:1px solid #eef0f4;vertical-align:top;color:var(--text2)}
+td{padding:10px 9px;border-bottom:1px solid #eef0f4;vertical-align:top;color:var(--text2)}
 tbody tr{cursor:pointer}
 tbody tr:hover td{background:#f4f7ff}
 tr.r-new td{background:#eaf1ff}
@@ -171,10 +171,11 @@ textarea.field{min-height:74px;resize:vertical;width:100%;font-family:inherit}
   tbody tr{border-bottom:1px solid var(--border);padding:8px 4px;display:grid;grid-template-columns:1fr 1fr;gap:2px 10px}
   td{border:0;padding:5px 8px;min-width:0}
   td.r{text-align:left}
-  td.c-part,td.c-veh,td.c-nov{grid-column:1/-1}
-  td.c-part{order:1}td.c-qty{order:2}td.c-val{order:3}td.c-veh{order:4}td.c-date{order:5}td.c-st{order:6}td.c-nov{order:7}
+  td.c-part,td.c-den,td.c-veh,td.c-nov{grid-column:1/-1}
+  td.c-part{order:1}td.c-den{order:2}td.c-qty{order:3}td.c-arch{order:4}td.c-fp{order:5}td.c-date{order:6}td.c-veh{order:7}td.c-st{order:8}td.c-hot{order:9}td.c-nov{order:10}
   td::before{display:block;content:attr(data-label);font-size:.58rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted2);font-weight:700;margin-bottom:1px}
   td.c-part::before{display:none}
+  .toolbar label[for=me]{flex:1 1 100%}
   tbody tr:hover td{background:transparent}
   tr.r-new,tr.r-chg{background:inherit}
   tr.r-new{background:#eaf1ff}tr.r-chg{background:#fff6e2}
@@ -183,6 +184,29 @@ textarea.field{min-height:74px;resize:vertical;width:100%;font-family:inherit}
   .hstats{width:100%}
   .hs{flex:1 1 60px}
 }
+
+/* denominación, archivo, hotline, info y marca */
+.den{font-weight:600;color:var(--text);overflow-wrap:anywhere}
+.mono-s{font-family:var(--mono);font-weight:600;font-size:.76rem;color:var(--text);overflow-wrap:anywhere}
+.hs.alert{background:rgba(248,113,113,.32);border-color:#f87171}
+.ask{display:inline-block;margin-top:5px;font-size:.68rem;font-weight:700;padding:4px 9px;border-radius:var(--rs);border:1.5px solid var(--primary2);background:#fff;color:var(--primary2);cursor:pointer}
+.ask:hover{background:var(--blue-bg)}
+.ask.att{border-color:var(--red);background:var(--red);color:#fff}
+.ask.att:hover{background:#96081a}
+.ask-on{color:var(--red);font-size:.72rem;margin-top:4px}
+.marca-l{margin-top:4px;color:var(--text);overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.solbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--border);background:var(--s2);border-radius:var(--rs);padding:8px 10px;font-size:.78rem}
+.solbar.on{border-color:var(--red);background:var(--red-bg);color:var(--red)}
+details.marca{border:1px solid var(--border);border-radius:var(--rs);background:var(--s2)}
+details.marca>summary{cursor:pointer;padding:10px 12px;font-size:.64rem;text-transform:uppercase;letter-spacing:.08em;font-weight:700;color:var(--muted);display:flex;justify-content:space-between;gap:8px;list-style:none}
+details.marca>summary::-webkit-details-marker{display:none}
+details.marca>summary::before{content:"▸";margin-right:6px;transition:transform .15s}
+details.marca[open]>summary::before{transform:rotate(90deg)}
+details.marca>summary span:first-child{flex:1}
+.cnt{background:var(--primary2);color:#fff;border-radius:10px;padding:0 7px;font-size:.62rem}
+.cnt:empty{display:none}
+.marca-in{padding:0 12px 12px}
+.nota.marca-n{border-left-color:var(--red);background:#fff}
 
 </style>
 </head>
@@ -215,6 +239,8 @@ textarea.field{min-height:74px;resize:vertical;width:100%;font-family:inherit}
           <option value="value">Mayor valor</option>
         </select>
       </label>
+      <label for="me">Tu nombre <input class="field" type="text" id="me" placeholder="Para firmar" autocomplete="off" style="width:130px"></label>
+      <button class="btn ghost" type="button" id="btnNotif" hidden>Activar avisos</button>
       <button class="btn green" type="button" id="btnCsv">Exportar CSV</button>
     </div>
     <div class="filters" id="filters" role="group" aria-label="Filtros"></div>
@@ -284,7 +310,7 @@ var Store = (function () {
     },
     canLoad: function () { return true; },
     saveSnap: function (date, body) { return ref('listados/' + date).set(body); },
-    saveInfo: function (key, obj) { return obj ? ref('info/' + key).set(obj) : ref('info/' + key).remove(); },
+    patchInfo: function (key, obj) { return ref('info/' + key).update(obj); },
     addNota: function (key, n) { return ref('notas/' + key + '/' + n.id).set(n); },
     delNota: function (key, id) { return ref('notas/' + key + '/' + id).remove(); }
   };
@@ -327,12 +353,12 @@ var Store = (function () {
   function isTodayTs(ts) { var d = new Date(ts); return !isNaN(d) && (d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate())) === todayIso(); }
   function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
   function key(r) { return r.p + '-' + r.s; }
-  function toast(msg, err) {
+  function toast(msg, err, ms) {
     var t = document.createElement('div');
     t.className = 'toast' + (err ? ' err' : '');
     t.textContent = msg;
     $('toasts').appendChild(t);
-    setTimeout(function () { t.remove(); }, err ? 5000 : 2600);
+    setTimeout(function () { t.remove(); }, ms || (err ? 5000 : 2600));
   }
 
   /* ---------- lectura del listado pegado ---------- */
@@ -400,19 +426,69 @@ var Store = (function () {
   }
 
   /* ---------- estado ---------- */
+  var BASE_TITLE = document.title;
   var SN = [], INFO = {}, NOTAS = {};
   var sel = null, tab = 'lista', filter = 'all', query = '', sortBy = 'changes';
   var loaded = false, loadErr = null, daysKey = '';
   var parsed = null, armed = false, modalKey = null, canLoad = false;
-  var VIEW = null;
+  var VIEW = null, solSeen = null, mine = {};
 
   function curSnap() { return SN.find(function (s) { return s.date === sel; }) || null; }
   function prevSnap(cur) { var i = SN.indexOf(cur); return i >= 0 && i + 1 < SN.length ? SN[i + 1] : null; }
   function refDate(cur) { return cur === SN[0] ? todayIso() : cur.date; }
   function hasVeh(v) { return !!(v && (v.fe || v.marca || v.modelo || v.matricula || v.bastidor)); }
+  function me() { return ($('me').value || '').trim(); }
+  function solOf(k) { var s = (INFO[k] || {}).sol; return s && s.on ? s : null; }
+  function notasOf(k, tipo) { return (NOTAS[k] || []).filter(function (n) { return (n.tipo || '') === tipo; }); }
+  function rowByKey(k) {
+    for (var i = 0; i < SN.length; i++) {
+      var f = SN[i].rows.filter(function (r) { return key(r) === k; })[0];
+      if (f) return f;
+    }
+    return null;
+  }
+  function patch(k, obj, okMsg) {
+    return Store.patchInfo(k, obj).then(function () { if (okMsg) toast(okMsg); return true; },
+      function (e) { toast('No se pudo guardar' + (e && e.code ? ' (' + e.code + ')' : ''), true); return false; });
+  }
 
   var raf = 0;
   function schedule() { if (raf) return; raf = requestAnimationFrame(function () { raf = 0; render(); }); }
+
+  /* ---------- avisos de "piden información" ---------- */
+  function notifySol(k) {
+    var r = rowByKey(k), v = INFO[k] || {}, s = v.sol || {};
+    var name = (r ? r.m : k) + (v.den ? ' · ' + v.den : '');
+    toast('Piden información: ' + name + (s.by ? ' (' + s.by + ')' : ''), false, 9000);
+    if (window.Notification && Notification.permission === 'granted') {
+      try { new Notification('Piden más info de una pieza', { body: name + (s.by ? '\nLo pide: ' + s.by : ''), tag: 'bo-' + k }); } catch (e) { /* sin permiso */ }
+    }
+  }
+  function detectSol() {
+    var now = {};
+    Object.keys(INFO).forEach(function (k) { var s = solOf(k); if (s) now[k] = s.ts || '1'; });
+    if (solSeen) Object.keys(now).forEach(function (k) { if (solSeen[k] !== now[k] && !mine[now[k]]) notifySol(k); });
+    solSeen = now;
+  }
+  function refreshNotifBtn() {
+    var b = $('btnNotif');
+    if (!('Notification' in window) || Store.mode !== 'firebase') { b.hidden = true; return; }
+    b.hidden = false;
+    var p = Notification.permission;
+    b.textContent = p === 'granted' ? 'Avisos activados' : p === 'denied' ? 'Avisos bloqueados' : 'Activar avisos';
+    b.disabled = p !== 'default';
+  }
+  function askInfo(k) {
+    var n = me();
+    if (!n) { toast('Escribe tu nombre arriba para pedir información', true); $('me').focus(); return; }
+    var ts = new Date().toISOString();
+    mine[ts] = 1;
+    patch(k, { sol: { on: 1, by: n, ts: ts, attBy: '', attTs: '' } }, 'Petición enviada. Aparece como "Piden info"');
+  }
+  function attend(k) {
+    var s = (INFO[k] || {}).sol || {};
+    patch(k, { sol: { on: 0, by: s.by || '', ts: s.ts || '', attBy: me(), attTs: new Date().toISOString() } }, 'Marcada como atendida');
+  }
 
   /* ---------- piezas de la interfaz ---------- */
   function badge(text, cls) { return '<span class="badge ' + cls + '">' + esc(text) + '</span>'; }
@@ -424,10 +500,11 @@ var Store = (function () {
     }
     return c.f === 't' ? badge('Estado', 'b-chg') : badge('Cantidad', 'b-chg');
   }
-  function lastNota(k) { var n = NOTAS[k] || []; return n.length ? n[n.length - 1] : null; }
+  function lastNota(k) { var n = notasOf(k, ''); return n.length ? n[n.length - 1] : null; }
 
   function rowHtml(r, inf, ref, mode) {
-    var k = key(r), vi = INFO[k] || null, ns = NOTAS[k] || [], last = ns.length ? ns[ns.length - 1] : null;
+    var k = key(r), vi = INFO[k] || {}, ni = notasOf(k, ''), nm = notasOf(k, 'marca');
+    var last = ni.length ? ni[ni.length - 1] : null, lastM = nm.length ? nm[nm.length - 1] : null, sol = solOf(k);
     var cls = (inf.st === 'new' ? 'r-new' : inf.st === 'chg' ? 'r-chg' : '') + (mode === 'gone' ? ' r-gone' : '');
     var dch = inf.ch.filter(function (c) { return c.f === 'd'; })[0];
     var tch = inf.ch.filter(function (c) { return c.f === 't'; })[0];
@@ -437,7 +514,7 @@ var Store = (function () {
     if (mode === 'gone') tags += badge('Salió', 'b-gone');
     if (inf.st === 'new') tags += badge('Nueva', 'b-new');
     inf.ch.forEach(function (c) { tags += changeBadge(c); });
-    if (r.h) tags += badge('Hotline', 'b-hot');
+    if (sol) tags += badge('Piden info', 'b-bad');
     if (last && isTodayTs(last.ts)) tags += badge('Novedad hoy', 'b-nov');
     var part = (tags ? '<div class="tags">' + tags + '</div>' : '') + '<div class="mat">' + esc(r.m) + '</div>' +
       '<div class="sub">Ped. ' + esc(r.p) + '/' + (+r.s) + ' · ' + esc(CLASES[r.c] || r.c) + '</div>';
@@ -446,24 +523,31 @@ var Store = (function () {
       part += '<div class="sub"' + (age > 60 ? ' style="color:var(--orange)"' : '') + '>' + (age <= 0 ? 'Asignado hoy' : 'Asignado hace ' + plural(age, 'día', 'días')) + '</div>';
     }
 
+    var den = vi.den ? '<div class="den">' + esc(vi.den) + '</div>' : '<span class="add-link">+ Denominación</span>';
+    var arch = vi.arch ? '<span class="mono-s">' + esc(vi.arch) + '</span>' : '<span class="none">—</span>';
+    var fpv = vi.fp || r.fc, fp;
+    if (fpv) {
+      var fd = dayDiff(fpv, ref);
+      fp = '<div class="dt">' + esc(fmtDate(fpv)) + '</div><div class="sub">' + (fd <= 0 ? 'hoy' : 'hace ' + plural(fd, 'día', 'días')) + (vi.fp ? '' : ' · creación') + '</div>';
+    } else fp = '<span class="none">—</span>';
+
     var qty = qch ? '<div class="big"><del>×' + qch.old + '</del> <ins>×' + qch.now + '</ins></div>' : '<div class="big">×' + r.b + '</div>';
+    qty += '<div class="val">' + EUR.format(r.vb) + '</div>';
     if (r.e > 0) qty += '<div class="sub">entregadas ' + r.e + ' de ' + r.q + '</div>';
     else if (r.q !== r.b) qty += '<div class="sub">pedidas ' + r.q + '</div>';
 
     var veh;
     if (hasVeh(vi)) {
       veh = '';
-      var nm = ((vi.marca || '') + ' ' + (vi.modelo || '')).trim();
-      if (nm) veh += '<div class="veh-name">' + esc(nm) + '</div>';
+      var nmv = ((vi.marca || '') + ' ' + (vi.modelo || '')).trim();
+      if (nmv) veh += '<div class="veh-name">' + esc(nmv) + '</div>';
       if (vi.matricula) veh += '<span class="plate">' + esc(vi.matricula) + '</span>';
       if (vi.bastidor) veh += '<div class="vin">' + esc(vi.bastidor) + '</div>';
       if (vi.fe) {
         var dd = dayDiff(vi.fe, todayIso());
         veh += '<div class="veh-days' + (dd >= 14 ? ' late' : dd >= 7 ? ' warn' : '') + '">Entró ' + esc(fmtDate(vi.fe)) + ' · ' + (dd <= 0 ? 'hoy' : plural(dd, 'día', 'días')) + '</div>';
       }
-    } else {
-      veh = '<span class="add-link">+ Añadir vehículo</span>';
-    }
+    } else veh = '<span class="add-link">+ Añadir vehículo</span>';
 
     var dline;
     if (dch) dline = '<del>' + esc(dch.old ? fmtDate(dch.old) : 'sin fecha') + '</del> → <ins>' + esc(dch.now ? fmtDate(dch.now) : 'sin fecha') + '</ins>';
@@ -480,24 +564,34 @@ var Store = (function () {
     else stTxt = r.t ? esc(r.t) : '<span class="none">Sin información</span>';
     var st = '<div class="st"><span class="dot ' + statusDot(r.t) + '"></span><span>' + stTxt + '</span></div>';
 
+    var hot = '';
+    if (vi.hl) hot += '<div><span class="badge b-hot">Hotline</span> <span class="mono-s">' + esc(vi.hl) + '</span></div>' + (vi.hld ? '<div class="sub">desde ' + esc(fmtDate(vi.hld)) + '</div>' : '');
+    else if (r.h) hot += '<div><span class="badge b-hot">Hotline</span> <span class="sub">sin nº anotado</span></div>';
+    if (lastM) hot += '<div class="marca-l"><b>Marca:</b> ' + esc(lastM.texto) + '</div><div class="sub">' + esc(fmtTs(lastM.ts)) + (nm.length > 1 ? ' · ' + nm.length + ' respuestas' : '') + '</div>';
+    if (mode !== 'gone') {
+      if (sol) hot += '<div class="ask-on">Info pedida por <b>' + esc(sol.by || '?') + '</b> · ' + esc(fmtTs(sol.ts)) + '</div><button class="ask att" type="button" data-att="' + esc(k) + '">Marcar atendida</button>';
+      else hot += '<button class="ask" type="button" data-ask="' + esc(k) + '">Pedir más info</button>';
+    }
+
     var nov;
     if (last) {
       nov = '<div class="nov-txt">' + esc(last.texto) + '</div><div class="sub">' + esc(last.autor || '') + (last.autor ? ' · ' : '') + esc(fmtTs(last.ts)) +
-        (ns.length > 1 ? ' · ' + ns.length + ' novedades' : '') + '</div>';
+        (ni.length > 1 ? ' · ' + ni.length + ' novedades' : '') + '</div>';
     } else nov = '<span class="add-link">+ Añadir novedad</span>';
 
-    var val = '<div class="val">' + EUR.format(r.vb) + '</div>' + (r.b > 1 ? '<div class="sub">' + EUR.format(r.v) + ' / ud</div>' : '');
-
     return '<tr class="' + cls + '" data-k="' + esc(k) + '" data-m="' + mode + '" tabindex="0">' +
-      '<td class="c-part" data-label="Pieza">' + part + '</td>' +
-      '<td class="r c-qty" data-label="Cant.">' + qty + '</td>' +
+      '<td class="c-part" data-label="Referencia">' + part + '</td>' +
+      '<td class="c-den" data-label="Denominación">' + den + '</td>' +
+      '<td class="c-arch" data-label="Nº archivo">' + arch + '</td>' +
+      '<td class="c-fp" data-label="Pedida el">' + fp + '</td>' +
+      '<td class="r c-qty" data-label="Cant. y valor">' + qty + '</td>' +
       '<td class="c-veh" data-label="Vehículo">' + veh + '</td>' +
       '<td class="c-date" data-label="Llegada prevista">' + dline + '</td>' +
       '<td class="c-st" data-label="Estado">' + st + '</td>' +
-      '<td class="c-nov" data-label="Última novedad">' + nov + '</td>' +
-      '<td class="r c-val" data-label="Valor">' + val + '</td></tr>';
+      '<td class="c-hot" data-label="Hotline y marca">' + hot + '</td>' +
+      '<td class="c-nov" data-label="Última novedad">' + nov + '</td></tr>';
   }
-  var THEAD = '<thead><tr><th>Pieza</th><th class="r">Cant.</th><th>Vehículo</th><th>Llegada prevista</th><th>Estado</th><th>Última novedad</th><th class="r">Valor</th></tr></thead>';
+  var THEAD = '<thead><tr><th>Referencia</th><th>Denominación</th><th>Nº archivo</th><th>Pedida el</th><th class="r">Cant. y valor</th><th>Vehículo</th><th>Llegada prevista</th><th>Estado</th><th>Hotline y marca</th><th>Última novedad</th></tr></thead>';
   function emptyHtml(t, s) { return '<div class="empty"><strong>' + esc(t) + '</strong>' + esc(s) + '</div>'; }
 
   /* ---------- pintado ---------- */
@@ -510,8 +604,9 @@ var Store = (function () {
     $('tabLista').classList.toggle('active', tab === 'lista');
     $('tabCarga').classList.toggle('active', tab === 'carga');
     $('tabCarga').hidden = !canLoad;
-    if (tab === 'carga') { updateSaveBtn(); }
+    if (tab === 'carga') updateSaveBtn();
     renderLista();
+    if (modalKey) renderSolBar();
   }
 
   function renderLista() {
@@ -532,14 +627,12 @@ var Store = (function () {
     var ref = refDate(cur);
     var rows = cur.rows;
 
-    /* aviso de listado antiguo */
     var stale = $('stale');
     if (cur === SN[0] && cur.date < todayIso()) {
       stale.hidden = false;
       stale.textContent = 'Este listado es del ' + fmtLong(cur.date) + '. Todavía no se ha cargado el de hoy.';
     } else stale.hidden = true;
 
-    /* selector de día */
     var dk = SN.map(function (s) { return s.date; }).join(',');
     if (dk !== daysKey) {
       daysKey = dk;
@@ -548,63 +641,66 @@ var Store = (function () {
     $('daySel').value = cur.date;
 
     /* cifras de cabecera */
-    var units = 0, value = 0, nodate = 0;
-    rows.forEach(function (r) { units += r.b; value += r.vb; if (!r.d) nodate++; });
+    var units = 0, value = 0, nodate = 0, nSol = 0;
+    rows.forEach(function (r) { units += r.b; value += r.vb; if (!r.d) nodate++; if (solOf(key(r))) nSol++; });
     var cc = countChanges(d);
     var ch = cc.nuevas + cc.cambios;
     $('hstats').innerHTML =
+      (nSol ? '<button class="hs alert" type="button" data-f="sol"><div class="hs-val">' + nSol + '</div><div class="hs-lbl">Piden info</div></button>' : '') +
       '<button class="hs" type="button" data-f="all"><div class="hs-val">' + rows.length + '</div><div class="hs-lbl">Líneas</div></button>' +
       '<button class="hs" type="button" data-f="all"><div class="hs-val">' + NUM.format(units) + '</div><div class="hs-lbl">Unidades</div></button>' +
       '<button class="hs" type="button" data-f="all"><div class="hs-val">' + EUR.format(value) + '</div><div class="hs-lbl">Valor pendiente</div></button>' +
       '<button class="hs" type="button" data-f="nodate"><div class="hs-val">' + nodate + '</div><div class="hs-lbl">Sin fecha</div></button>' +
       (d.hasPrev ? '<button class="hs' + (ch ? ' hot' : '') + '" type="button" data-f="chg"><div class="hs-val">' + ch + '</div><div class="hs-lbl">Cambios hoy</div></button>' : '');
+    document.title = (nSol ? '(' + nSol + ') ' : '') + BASE_TITLE;
 
     /* filtros */
-    var cnt = { all: rows.length, new: 0, chg: 0, nodate: nodate, recep: 0, hot: 0, veh: 0, noveh: 0 };
+    var cnt = { all: rows.length, sol: nSol, new: 0, chg: 0, nodate: nodate, recep: 0, hot: 0, veh: 0, noveh: 0 };
     rows.forEach(function (r) {
-      var i = d.info.get(key(r));
+      var k = key(r), i = d.info.get(k), v = INFO[k] || {};
       if (i.st === 'new') cnt.new++;
       if (i.st === 'chg') cnt.chg++;
       if (/recep/i.test(r.t)) cnt.recep++;
-      if (r.h) cnt.hot++;
-      if (hasVeh(INFO[key(r)])) cnt.veh++; else cnt.noveh++;
+      if (r.h || v.hl) cnt.hot++;
+      if (hasVeh(v)) cnt.veh++; else cnt.noveh++;
     });
-    var defs = [['all', 'Todas', ''], ['new', 'Nuevas', 'new'], ['chg', 'Con cambios', 'warn'], ['nodate', 'Sin fecha', 'danger'],
+    var defs = [['all', 'Todas', ''], ['sol', 'Piden info', 'danger'], ['new', 'Nuevas', 'new'], ['chg', 'Con cambios', 'warn'], ['nodate', 'Sin fecha', 'danger'],
       ['recep', 'En recepción', 'ok'], ['hot', 'Hotline', ''], ['veh', 'Con vehículo', ''], ['noveh', 'Sin vehículo', '']];
     $('filters').innerHTML = defs.map(function (f) {
       return '<button class="fbtn ' + f[2] + (filter === f[0] ? ' active' : '') + '" type="button" data-f="' + f[0] + '" aria-pressed="' + (filter === f[0]) + '">' + f[1] + '<span class="n">' + cnt[f[0]] + '</span></button>';
     }).join('');
 
     $('summary').textContent = d.hasPrev
-      ? 'Frente al listado del ' + fmtLong(prev.date) + ': ' + plural(cc.nuevas, 'línea nueva', 'líneas nuevas') + ', ' + plural(cc.cambios, 'con cambios', 'con cambios') + ' y ' + plural(cc.salieron, 'salió', 'salieron') + ' del backorder. Pulsa una pieza para ver o añadir vehículo y novedades.'
-      : 'Es el primer listado guardado. Desde el siguiente se marcará lo que cambie. Pulsa una pieza para añadir vehículo y novedades.';
+      ? 'Frente al listado del ' + fmtLong(prev.date) + ': ' + plural(cc.nuevas, 'línea nueva', 'líneas nuevas') + ', ' + plural(cc.cambios, 'con cambios', 'con cambios') + ' y ' + plural(cc.salieron, 'salió', 'salieron') + ' del backorder. Pulsa una pieza para abrir su ficha.'
+      : 'Es el primer listado guardado. Desde el siguiente se marcará lo que cambie. Pulsa una pieza para abrir su ficha.';
 
-    /* filtrar y ordenar */
     var q = query.trim().toLowerCase();
     var shown = rows.filter(function (r) {
-      var k = key(r), i = d.info.get(k), v = INFO[k];
+      var k = key(r), i = d.info.get(k), v = INFO[k] || {};
+      if (filter === 'sol' && !solOf(k)) return false;
       if (filter === 'new' && i.st !== 'new') return false;
       if (filter === 'chg' && i.st !== 'chg') return false;
       if (filter === 'nodate' && r.d) return false;
       if (filter === 'recep' && !/recep/i.test(r.t)) return false;
-      if (filter === 'hot' && !r.h) return false;
+      if (filter === 'hot' && !(r.h || v.hl)) return false;
       if (filter === 'veh' && !hasVeh(v)) return false;
       if (filter === 'noveh' && hasVeh(v)) return false;
       if (q) {
-        var hay = (r.m + ' ' + r.p + ' ' + (v ? (v.matricula || '') + ' ' + (v.bastidor || '') + ' ' + (v.modelo || '') + ' ' + (v.marca || '') : '')).toLowerCase();
+        var hay = (r.m + ' ' + r.p + ' ' + (v.matricula || '') + ' ' + (v.bastidor || '') + ' ' + (v.modelo || '') + ' ' + (v.marca || '') + ' ' + (v.den || '') + ' ' + (v.arch || '') + ' ' + (v.hl || '')).toLowerCase();
         if (hay.indexOf(q) < 0) return false;
       }
       return true;
     });
     shown.sort(function (a, b) {
       var ia = d.info.get(key(a)), ib = d.info.get(key(b)), x;
-      if (sortBy === 'changes') { x = rank(ia) - rank(ib); if (x) return x; x = dKey(a).localeCompare(dKey(b)); if (x) return x; }
-      else if (sortBy === 'date') { x = dKey(a).localeCompare(dKey(b)); if (x) return x; }
+      if (sortBy === 'changes') {
+        x = (solOf(key(b)) ? 1 : 0) - (solOf(key(a)) ? 1 : 0); if (x) return x;
+        x = rank(ia) - rank(ib); if (x) return x; x = dKey(a).localeCompare(dKey(b)); if (x) return x;
+      } else if (sortBy === 'date') { x = dKey(a).localeCompare(dKey(b)); if (x) return x; }
       else if (sortBy === 'veh') {
         var fa = (INFO[key(a)] || {}).fe || '9999', fb = (INFO[key(b)] || {}).fe || '9999';
         x = fa.localeCompare(fb); if (x) return x;
-      }
-      else if (sortBy === 'age') { x = (a.fa || '9999').localeCompare(b.fa || '9999'); if (x) return x; }
+      } else if (sortBy === 'age') { x = ((INFO[key(a)] || {}).fp || a.fc || '9999').localeCompare((INFO[key(b)] || {}).fp || b.fc || '9999'); if (x) return x; }
       else if (sortBy === 'value') { if (b.vb !== a.vb) return b.vb - a.vb; }
       return a.p.localeCompare(b.p);
     });
@@ -613,7 +709,6 @@ var Store = (function () {
       : emptyHtml('Ninguna línea coincide', 'Cambia el filtro o la búsqueda.');
     VIEW = { cur: cur, prev: prev, d: d };
 
-    /* líneas que salieron */
     if (d.hasPrev && d.gone.length) {
       $('goneBox').hidden = false;
       $('goneTitle').textContent = 'Ya no están en backorder (' + d.gone.length + ')';
@@ -621,7 +716,6 @@ var Store = (function () {
       $('goneWrap').innerHTML = '<table>' + THEAD + '<tbody>' + d.gone.map(function (r) { return rowHtml(r, { st: 'same', ch: [] }, prev.date, 'gone'); }).join('') + '</tbody></table>';
     } else $('goneBox').hidden = true;
 
-    /* matrículas conocidas para autocompletar */
     var plates = {};
     Object.keys(INFO).forEach(function (k) { if (INFO[k] && INFO[k].matricula) plates[INFO[k].matricula] = 1; });
     var pk = Object.keys(plates).sort().join('|');
@@ -634,8 +728,13 @@ var Store = (function () {
   /* ---------- ficha de la pieza ---------- */
   function findRow(k) {
     var rows = [];
-    if (VIEW) { rows = VIEW.cur.rows.concat(VIEW.prev ? VIEW.prev.rows : []); }
+    if (VIEW) rows = VIEW.cur.rows.concat(VIEW.prev ? VIEW.prev.rows : []);
     return rows.filter(function (r) { return key(r) === k; })[0] || null;
+  }
+  function sameMatDen(m, k) {
+    var ks = Object.keys(INFO);
+    for (var i = 0; i < ks.length; i++) { var v = INFO[ks[i]]; if (ks[i] !== k && v && v.mat === m && v.den) return v.den; }
+    return '';
   }
   function openFicha(k) {
     var r = findRow(k);
@@ -646,33 +745,61 @@ var Store = (function () {
     $('mSub').textContent = 'Pedido ' + r.p + ' / ' + (+r.s) + ' · ' + (CLASES[r.c] || r.c);
     var marcas = MARCAS.map(function (m) { return '<option' + (v.marca === m ? ' selected' : '') + '>' + esc(m) + '</option>'; }).join('');
     if (v.marca && MARCAS.indexOf(v.marca) < 0) marcas += '<option selected>' + esc(v.marca) + '</option>';
+    var den = v.den || sameMatDen(r.m, k);
+    var denHint = !v.den && den ? 'Copiada de otra línea con la misma referencia. Guarda para confirmarla.' : 'Nombre de la pieza, como la entiende el taller.';
+    var fp = v.fp || r.fc || '';
     $('mBody').innerHTML =
       '<div class="resum"><span><b>×' + r.b + '</b> pendientes</span><span>' + esc(r.t || 'Sin estado') + '</span><span>' + (r.d ? 'Llegada ' + esc(fmtDate(r.d)) : 'Sin fecha prevista') + '</span><span>' + EUR.format(r.vb) + '</span></div>' +
+      '<div id="solBar"></div>' +
+      '<div><div class="sect-t">Pieza</div><div class="fgrid">' +
+      '<label class="fl full" for="fDen">Denominación<input class="field" type="text" id="fDen" value="' + esc(den) + '" placeholder="Ej. Pastillas de freno delanteras" autocomplete="off"><span class="hint">' + denHint + '</span></label>' +
+      '<label class="fl" for="fArch">Nº de archivo<input class="field mono" type="text" id="fArch" value="' + esc(v.arch || '') + '" placeholder="Nº de archivo" autocomplete="off"></label>' +
+      '<label class="fl" for="fFp">Fecha en que se pidió<input class="field" type="date" id="fFp" value="' + esc(fp) + '"><span class="hint">' + (v.fp ? 'Anotada a mano.' : 'Por defecto, la creación del pedido en el sistema.') + '</span></label>' +
+      '</div></div>' +
       '<div><div class="sect-t">Vehículo</div><div class="fgrid">' +
       '<label class="fl" for="fFe">Fecha de entrada<input class="field" type="date" id="fFe" value="' + esc(v.fe || '') + '"></label>' +
       '<label class="fl" for="fMarca">Marca<select class="field" id="fMarca"><option value="">—</option>' + marcas + '</select></label>' +
       '<label class="fl" for="fModelo">Modelo<input class="field" type="text" id="fModelo" value="' + esc(v.modelo || '') + '" placeholder="Ej. Golf VIII, Ateca…" autocomplete="off"></label>' +
       '<label class="fl" for="fMat">Matrícula<input class="field mono" type="text" id="fMat" list="dlPlates" value="' + esc(v.matricula || '') + '" placeholder="0000ABC" autocomplete="off"></label>' +
-      '<label class="fl full" for="fVin">Bastidor (VIN)<input class="field mono" type="text" id="fVin" value="' + esc(v.bastidor || '') + '" placeholder="17 caracteres" autocomplete="off" maxlength="17"><span class="hint" id="vinHint">Si la matrícula ya está en otra pieza, se rellenan sola marca, modelo y bastidor.</span></label>' +
-      '</div><div class="mrow" style="margin-top:10px"><button class="btn" type="button" id="bSaveV">Guardar vehículo</button><button class="btn ghost" type="button" id="bClearV">Quitar vehículo</button></div></div>' +
+      '<label class="fl full" for="fVin">Bastidor (VIN)<input class="field mono" type="text" id="fVin" value="' + esc(v.bastidor || '') + '" placeholder="17 caracteres" autocomplete="off" maxlength="17"><span class="hint" id="vinHint"></span></label>' +
+      '</div></div>' +
+      '<div><div class="sect-t">Hotline (reclamación a la marca)</div><div class="fgrid">' +
+      '<label class="fl full" for="fHl">Nº de hotline<input class="field mono" type="text" id="fHl" value="' + esc(v.hl || '') + '" placeholder="Número que te da la marca" autocomplete="off"><span class="hint">' +
+      (r.h ? 'En el sistema esta línea figura como Hotline. ' : '') + (v.hld ? 'Anotado el ' + esc(fmtDate(v.hld)) + '.' : 'La fecha se anota sola al guardar el número.') + '</span></label>' +
+      '</div><div class="mrow" style="margin-top:12px"><button class="btn" type="button" id="bSaveF">Guardar ficha</button><button class="btn ghost" type="button" id="bClearV">Quitar vehículo</button></div></div>' +
       '<div><div class="sect-t">Novedades del estado</div>' +
       '<label class="fl" for="fNota">Nueva novedad<textarea class="field" id="fNota" placeholder="Ej. Proveedor confirma entrega el viernes. Cliente avisado."></textarea></label>' +
-      '<div class="mrow" style="margin-top:8px"><label class="fl" for="fAutor" style="flex:1 1 140px">Tu nombre<input class="field" type="text" id="fAutor" value="' + esc(ls('bo_autor')) + '" placeholder="Quién lo anota" autocomplete="off"></label>' +
-      '<button class="btn" type="button" id="bAddNota" style="align-self:flex-end">Añadir novedad</button></div>' +
-      '<div class="tl" id="notasList"></div></div>';
+      '<div class="mrow" style="margin-top:8px"><button class="btn" type="button" id="bAddNota" data-tipo="">Añadir novedad</button></div>' +
+      '<div class="tl" id="notasList"></div></div>' +
+      '<details class="marca" id="marcaBox"><summary><span>Respuestas de la marca</span><span class="cnt" id="marcaCnt"></span></summary><div class="marca-in">' +
+      '<label class="fl" for="fMarcaT">Nueva respuesta de la marca<textarea class="field" id="fMarcaT" placeholder="Ej. Hotline responde: pieza en fabricación, entrega prevista el 5/11."></textarea></label>' +
+      '<div class="mrow" style="margin-top:8px"><button class="btn" type="button" id="bAddMarca" data-tipo="marca">Añadir respuesta</button></div>' +
+      '<div class="tl" id="marcaList"></div></div></details>';
     renderNotas();
+    renderSolBar();
     checkVin();
+    $('marcaBox').open = notasOf(k, 'marca').length > 0;
     $('ov').hidden = false;
     document.body.style.overflow = 'hidden';
   }
   function closeFicha() { modalKey = null; $('ov').hidden = true; document.body.style.overflow = ''; }
+  function notaHtml(n) {
+    return '<div class="nota' + (n.tipo === 'marca' ? ' marca-n' : '') + '"><div class="nota-h"><span><b>' + esc(n.autor || 'Sin nombre') + '</b> · ' + esc(fmtTs(n.ts)) + '</span><button class="nota-x" type="button" data-del="' + esc(n.id) + '">Borrar</button></div><div class="nota-t">' + esc(n.texto) + '</div></div>';
+  }
   function renderNotas() {
-    var box = $('notasList');
-    if (!box || !modalKey) return;
-    var ns = (NOTAS[modalKey] || []).slice().reverse();
-    box.innerHTML = ns.length ? ns.map(function (n) {
-      return '<div class="nota"><div class="nota-h"><span><b>' + esc(n.autor || 'Sin nombre') + '</b> · ' + esc(fmtTs(n.ts)) + '</span><button class="nota-x" type="button" data-del="' + esc(n.id) + '">Borrar</button></div><div class="nota-t">' + esc(n.texto) + '</div></div>';
-    }).join('') : '<p class="sub">Todavía no hay novedades de esta pieza.</p>';
+    if (!modalKey || !$('notasList')) return;
+    var a = notasOf(modalKey, '').slice().reverse(), m = notasOf(modalKey, 'marca').slice().reverse();
+    $('notasList').innerHTML = a.length ? a.map(notaHtml).join('') : '<p class="sub">Todavía no hay novedades de esta pieza.</p>';
+    $('marcaList').innerHTML = m.length ? m.map(notaHtml).join('') : '<p class="sub">Todavía no hay respuestas de la marca.</p>';
+    $('marcaCnt').textContent = m.length ? m.length : '';
+  }
+  function renderSolBar() {
+    var b = $('solBar');
+    if (!b || !modalKey) return;
+    var s = solOf(modalKey), k = esc(modalKey);
+    b.innerHTML = s
+      ? '<div class="solbar on"><span><b>Info solicitada</b> por ' + esc(s.by || '?') + ' · ' + esc(fmtTs(s.ts)) + '</span><button class="btn" type="button" data-att="' + k + '">Marcar atendida</button></div>'
+      : '<div class="solbar"><span>¿Necesitas más información de esta pieza?</span><button class="btn ghost" type="button" data-ask="' + k + '">Pedir más info</button></div>';
   }
   function cleanVin(s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
   function checkVin() {
@@ -700,30 +827,35 @@ var Store = (function () {
     });
     if (changed) { checkVin(); toast('Datos del vehículo copiados de otra pieza'); }
   }
-  function saveVeh(clear) {
+  function saveFicha() {
     if (!modalKey) return;
-    var o = clear ? null : {
+    var k = modalKey, r = findRow(k), old = INFO[k] || {};
+    var hl = $('fHl').value.trim();
+    var o = {
+      mat: r ? r.m : (old.mat || ''), den: $('fDen').value.trim(), arch: $('fArch').value.trim(), fp: $('fFp').value || '',
       fe: $('fFe').value || '', marca: $('fMarca').value || '', modelo: $('fModelo').value.trim(),
       matricula: $('fMat').value.toUpperCase().replace(/[\s-]/g, ''), bastidor: cleanVin($('fVin').value),
-      upd: new Date().toISOString(), by: $('fAutor').value.trim()
+      hl: hl, hld: hl ? (old.hl ? (old.hld || todayIso()) : todayIso()) : '',
+      upd: new Date().toISOString(), by: me()
     };
-    if (o && !hasVeh(o)) o = null;
-    var k = modalKey;
-    Store.saveInfo(k, o).then(function () {
-      toast(o ? 'Vehículo guardado' : 'Vehículo quitado');
-      if (modalKey === k) closeFicha();
-    }, function (e) { toast('No se pudo guardar' + (e && e.code ? ' (' + e.code + ')' : ''), true); });
+    patch(k, o, 'Ficha guardada').then(function (ok) { if (ok && modalKey === k) closeFicha(); });
   }
-  function addNota() {
+  function clearVeh() {
     if (!modalKey) return;
-    var t = $('fNota').value.trim();
-    if (!t) { toast('Escribe la novedad antes de añadirla', true); return; }
-    var autor = $('fAutor').value.trim();
-    ls('bo_autor', autor);
-    var n = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ts: new Date().toISOString(), autor: autor, texto: t };
-    var btn = $('bAddNota'); btn.disabled = true;
+    var k = modalKey;
+    patch(k, { fe: '', marca: '', modelo: '', matricula: '', bastidor: '' }, 'Vehículo quitado').then(function (ok) {
+      if (ok && modalKey === k) { ['fFe', 'fMarca', 'fModelo', 'fMat', 'fVin'].forEach(function (id) { $(id).value = ''; }); checkVin(); }
+    });
+  }
+  function addNota(tipo) {
+    if (!modalKey) return;
+    var ta = $(tipo === 'marca' ? 'fMarcaT' : 'fNota');
+    var t = ta.value.trim();
+    if (!t) { toast('Escribe el texto antes de añadirlo', true); return; }
+    var n = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ts: new Date().toISOString(), autor: me(), texto: t, tipo: tipo || '' };
+    var btn = $(tipo === 'marca' ? 'bAddMarca' : 'bAddNota'); btn.disabled = true;
     Store.addNota(modalKey, n).then(function () {
-      $('fNota').value = ''; btn.disabled = false; toast('Novedad añadida');
+      ta.value = ''; btn.disabled = false; toast(tipo === 'marca' ? 'Respuesta de la marca añadida' : 'Novedad añadida');
     }, function (e) { btn.disabled = false; toast('No se pudo añadir' + (e && e.code ? ' (' + e.code + ')' : ''), true); });
   }
 
@@ -766,17 +898,19 @@ var Store = (function () {
     }, function (e) { setMsg('No se pudo guardar' + (e && e.code ? ' (' + e.code + ')' : '') + '. Inténtalo otra vez.', 'err'); updateSaveBtn(); });
   }
 
+
   /* ---------- exportar ---------- */
   function exportCsv() {
     if (!VIEW) return;
     var cur = VIEW.cur;
-    var head = ['Pedido', 'Pos', 'Material', 'Clase', 'Cant. backorder', 'Fecha prevista', 'Estado', 'Valor BO', 'Marca', 'Modelo', 'Matricula', 'Bastidor', 'Entrada vehiculo', 'Ultima novedad'];
+    var head = ['Referencia', 'Denominacion', 'Pedido', 'Pos', 'Nº archivo', 'Pedida el', 'Clase', 'Cant. backorder', 'Fecha prevista', 'Estado', 'Valor BO', 'Marca', 'Modelo', 'Matricula', 'Bastidor', 'Entrada vehiculo', 'Hotline', 'Info solicitada', 'Ultima novedad', 'Ultima respuesta marca'];
     function q(s) { return '"' + String(s == null ? '' : s).replace(/"/g, '""') + '"'; }
+    function nt(n) { return n ? fmtTs(n.ts) + ' ' + (n.autor || '') + ': ' + n.texto : ''; }
     var lines = [head.map(q).join(';')];
     cur.rows.forEach(function (r) {
-      var v = INFO[key(r)] || {}, n = lastNota(key(r));
-      lines.push([r.p, r.s, r.m, CLASES[r.c] || r.c, r.b, r.d, r.t, String(r.vb).replace('.', ','), v.marca, v.modelo, v.matricula, v.bastidor, v.fe,
-        n ? fmtTs(n.ts) + ' ' + (n.autor || '') + ': ' + n.texto : ''].map(q).join(';'));
+      var k = key(r), v = INFO[k] || {}, ni = notasOf(k, ''), nm = notasOf(k, 'marca'), s = solOf(k);
+      lines.push([r.m, v.den, r.p, r.s, v.arch, v.fp || r.fc, CLASES[r.c] || r.c, r.b, r.d, r.t, String(r.vb).replace('.', ','), v.marca, v.modelo, v.matricula, v.bastidor, v.fe,
+        v.hl, s ? 'Si, ' + (s.by || '') + ' ' + fmtTs(s.ts) : '', nt(ni[ni.length - 1]), nt(nm[nm.length - 1])].map(q).join(';'));
     });
     var blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
     var a = document.createElement('a');
@@ -790,6 +924,10 @@ var Store = (function () {
     var t = e.target;
     var tabBtn = t.closest('[data-tab]');
     if (tabBtn) { tab = tabBtn.getAttribute('data-tab'); render(); return; }
+    var ask = t.closest('[data-ask]');
+    if (ask) { askInfo(ask.getAttribute('data-ask')); return; }
+    var att = t.closest('[data-att]');
+    if (att) { attend(att.getAttribute('data-att')); return; }
     var f = t.closest('[data-f]');
     if (f) { filter = f.getAttribute('data-f'); tab = 'lista'; render(); if (f.classList.contains('hs')) window.scrollTo({ top: 0 }); return; }
     var tr = t.closest('tr[data-k]');
@@ -797,12 +935,13 @@ var Store = (function () {
     var del = t.closest('[data-del]');
     if (del && modalKey) {
       if (!del.classList.contains('arm')) { del.classList.add('arm'); del.textContent = '¿Seguro? Pulsa otra vez'; return; }
-      Store.delNota(modalKey, del.getAttribute('data-del')).then(function () { toast('Novedad borrada'); }, function () { toast('No se pudo borrar', true); });
+      Store.delNota(modalKey, del.getAttribute('data-del')).then(function () { toast('Borrado'); }, function () { toast('No se pudo borrar', true); });
       return;
     }
-    if (t.id === 'bSaveV') saveVeh(false);
-    else if (t.id === 'bClearV') saveVeh(true);
-    else if (t.id === 'bAddNota') addNota();
+    if (t.id === 'bSaveF') saveFicha();
+    else if (t.id === 'bClearV') clearVeh();
+    else if (t.id === 'bAddNota') addNota('');
+    else if (t.id === 'bAddMarca') addNota('marca');
     else if (t.id === 'mClose' || t.id === 'ov') closeFicha();
   });
   document.addEventListener('keydown', function (e) {
@@ -812,6 +951,7 @@ var Store = (function () {
   document.addEventListener('input', function (e) {
     if (e.target.id === 'fVin') { e.target.value = cleanVin(e.target.value); checkVin(); }
     if (e.target.id === 'fMat') e.target.value = e.target.value.toUpperCase();
+    if (e.target.id === 'me') ls('bo_autor', e.target.value.trim());
   });
   document.addEventListener('change', function (e) { if (e.target.id === 'fMat') fillFromPlate(); });
   $('daySel').addEventListener('change', function (e) { sel = e.target.value; render(); });
@@ -821,8 +961,14 @@ var Store = (function () {
   $('loadDate').addEventListener('change', previewPaste);
   $('btnSave').addEventListener('click', saveSnap);
   $('btnCsv').addEventListener('click', exportCsv);
+  $('btnNotif').addEventListener('click', function () {
+    if (!('Notification' in window)) return;
+    Notification.requestPermission().then(function () { refreshNotifBtn(); if (Notification.permission === 'granted') toast('Avisos activados en este dispositivo'); });
+  });
   $('loadDate').value = todayIso();
+  $('me').value = ls('bo_autor');
   if (Store.mode === 'artifact') $('btnCsv').hidden = true;
+  refreshNotifBtn();
   render();
 
   Promise.resolve(Store.canLoad()).then(function (ok) { canLoad = !!ok; render(); });
@@ -833,7 +979,7 @@ var Store = (function () {
       if (!sel || !SN.some(function (s) { return s.date === sel; })) sel = SN.length ? SN[0].date : null;
       loaded = true; loadErr = null; schedule();
     },
-    onInfo: function (m) { INFO = m || {}; schedule(); },
+    onInfo: function (m) { INFO = m || {}; detectSol(); schedule(); },
     onNotas: function (m) {
       NOTAS = {};
       Object.keys(m || {}).forEach(function (k) { NOTAS[k] = (m[k] || []).filter(Boolean).sort(function (a, b) { return String(a.ts).localeCompare(String(b.ts)); }); });
