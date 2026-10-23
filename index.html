@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Backorder Recambios · DAMA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Code+Pro:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f0f2f5;--surface:#fff;--s2:#f8f9fb;--border:#e2e5ea;--border2:#d0d5de;
+  --text:#1a1d23;--text2:#3d4251;--muted:#6b7280;--muted2:#9ca3af;
+  --primary:#0d1b3e;--primary2:#1a3a6e;--blue:#1c57d6;--blue-bg:#eef3fc;
+  --green:#1a7f4e;--green-bg:#eaf5ef;
+  --red:#bb0a21;--red-bg:#fff0f0;--orange:#c47200;--orange-bg:#fff8ec;
+  --mark:#ffe39a;
+  --mono:"Source Code Pro",ui-monospace,Menlo,Consolas,monospace;--font:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:10px;--rs:6px;--sh:0 2px 8px rgba(0,0,0,.08);--sh-lg:0 12px 40px rgba(0,0,0,.2);
+  color-scheme:light;
+}
+html{color-scheme:light}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:#0d1b3e;z-index:60}
+[hidden]{display:none!important}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--primary2);outline-offset:2px}
+
+/* HEADER */
+.header{background:linear-gradient(135deg,#0d1b3e,#1a3a6e);color:#fff;padding:8px max(20px,env(safe-area-inset-right,0px)) 8px max(20px,env(safe-area-inset-left,0px));display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 16px;min-height:56px;box-shadow:0 2px 12px rgba(0,0,0,.3);position:sticky;top:env(safe-area-inset-top,0px);z-index:50}
+.htitle{font-size:.82rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+.hsub{font-size:.62rem;opacity:.6;margin-top:1px;display:flex;align-items:center}
+.hstats{display:flex;gap:5px;flex-wrap:wrap}
+.hs{background:rgba(255,255,255,.1);border-radius:var(--rs);padding:4px 12px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,.1);color:#fff;transition:background .15s;min-width:64px}
+.hs:hover{background:rgba(255,255,255,.18)}
+.hs-val{font-size:1rem;font-weight:700;line-height:1.2;font-variant-numeric:tabular-nums}
+.hs-lbl{font-size:.52rem;text-transform:uppercase;letter-spacing:.07em;opacity:.6;margin-top:1px}
+.hs.hot{background:rgba(251,191,36,.22);border-color:rgba(251,191,36,.5)}
+.conn{width:7px;height:7px;border-radius:50%;background:#f87171;display:inline-block;margin-right:5px}
+.conn.on{background:#34d399;animation:pg 2s infinite}
+@keyframes pg{0%,100%{opacity:1}50%{opacity:.4}}
+@media (prefers-reduced-motion:reduce){.conn.on{animation:none}}
+
+/* TABS */
+.tabs{background:#fff;border-bottom:2px solid var(--border);padding:0 max(20px,env(safe-area-inset-right,0px)) 0 max(20px,env(safe-area-inset-left,0px));display:flex;overflow-x:auto}
+.tab{padding:13px 18px;font-size:.82rem;font-weight:600;color:var(--muted);cursor:pointer;border:0;border-bottom:3px solid transparent;margin-bottom:-2px;background:none;white-space:nowrap}
+.tab:hover{color:var(--text);background:var(--s2)}
+.tab.active{color:var(--primary2);border-bottom-color:var(--primary2)}
+
+/* MAIN */
+.main{max-width:1600px;margin:0 auto;padding:16px max(16px,env(safe-area-inset-right,0px)) 48px max(16px,env(safe-area-inset-left,0px))}
+.card{background:#fff;border-radius:var(--r);border:1px solid var(--border);box-shadow:var(--sh);overflow:hidden;margin-bottom:16px}
+.card-hdr{background:linear-gradient(135deg,#0d1b3e,#1a3a6e);color:#fff;padding:11px 18px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:.78rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.card-body{padding:16px 18px}
+.banner{border:1px solid var(--orange);background:var(--orange-bg);color:#7a4600;padding:10px 14px;border-radius:var(--rs);font-size:.82rem;margin-bottom:12px}
+.summary{color:var(--muted);font-size:.8rem;margin:0 0 12px}
+
+/* TOOLBAR */
+.toolbar{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.toolbar label{display:flex;align-items:center;gap:6px;font-size:.72rem;font-weight:600;color:var(--muted)}
+.field,.toolbar select,.toolbar input[type=search]{padding:8px 10px;border-radius:var(--rs);border:1.5px solid var(--border2);background:#fff;font-size:.82rem;outline:none;min-width:0}
+.field:focus,.toolbar select:focus,.toolbar input[type=search]:focus{border-color:var(--primary2)}
+.toolbar .grow{flex:1 1 220px;min-width:0}
+.toolbar .grow input{width:100%}
+.fbtn{padding:5px 12px;border-radius:20px;border:1.5px solid var(--border2);background:#fff;font-size:.72rem;font-weight:600;cursor:pointer;color:var(--muted);white-space:nowrap}
+.fbtn:hover,.fbtn.active{border-color:var(--primary2);background:var(--blue-bg);color:var(--primary2)}
+.fbtn.new.active{border-color:var(--blue);background:var(--blue-bg);color:var(--blue)}
+.fbtn.warn.active{border-color:var(--orange);background:var(--orange-bg);color:var(--orange)}
+.fbtn.ok.active{border-color:var(--green);background:var(--green-bg);color:var(--green)}
+.fbtn.danger.active{border-color:var(--red);background:var(--red-bg);color:var(--red)}
+.fbtn .n{font-variant-numeric:tabular-nums;opacity:.7;margin-left:4px}
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--rs);background:var(--primary2);color:#fff;border:0;font-size:.78rem;font-weight:600;cursor:pointer}
+.btn:hover{background:var(--primary)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.green{background:#1d6f42}.btn.green:hover{background:#155232}
+.btn.ghost{background:#fff;color:var(--primary2);border:1.5px solid var(--border2)}
+.btn.ghost:hover{background:var(--blue-bg)}
+
+/* TABLE */
+.twrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.8rem;min-width:1060px}
+th{padding:9px 11px;text-align:left;font-size:.6rem;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.88);font-weight:700;white-space:nowrap;background:linear-gradient(135deg,#0d1b3e,#1a3a6e)}
+th.r,td.r{text-align:right}
+td{padding:10px 11px;border-bottom:1px solid #eef0f4;vertical-align:top;color:var(--text2)}
+tbody tr{cursor:pointer}
+tbody tr:hover td{background:#f4f7ff}
+tr.r-new td{background:#eaf1ff}
+tr.r-chg td{background:#fff6e2}
+tr.r-new:hover td{background:#dde9ff}
+tr.r-chg:hover td{background:#ffefc9}
+tr.r-gone td{opacity:.75}
+tr.r-gone .mat{text-decoration:line-through;color:var(--muted)}
+.empty{text-align:center;padding:44px 18px;color:var(--muted);font-size:.88rem}
+.empty strong{display:block;color:var(--text);font-size:1rem;margin-bottom:4px}
+.mat{font-family:var(--mono);font-weight:600;font-size:.86rem;color:var(--text)}
+.sub{color:var(--muted);font-size:.72rem;font-variant-numeric:tabular-nums}
+.big{font-weight:700;font-size:1.1rem;line-height:1.2;font-variant-numeric:tabular-nums;color:var(--text)}
+.val{font-weight:700;font-variant-numeric:tabular-nums;color:var(--text)}
+.dt{font-weight:600;color:var(--text)}
+.none{color:var(--muted2)}
+.rel{font-size:.72rem;color:var(--muted)}
+.rel.late{color:var(--red);font-weight:700}
+.rel.soon{color:var(--green);font-weight:700}
+.tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:5px}
+.badge{display:inline-block;font-size:.58rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;line-height:1;padding:4px 6px;border-radius:4px;color:#fff;white-space:nowrap}
+.b-new{background:var(--blue)}.b-chg{background:var(--orange)}.b-ok{background:var(--green)}.b-bad{background:var(--red)}.b-gone{background:var(--muted)}
+.b-hot{background:#fff;color:var(--red);box-shadow:inset 0 0 0 1px var(--red)}
+.b-nov{background:var(--primary2)}
+del{color:var(--muted);text-decoration:line-through}
+ins{text-decoration:none;font-weight:700;background:var(--mark);color:var(--text);padding:0 3px;border-radius:3px}
+.st{display:flex;gap:7px;align-items:baseline}
+.dot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--muted2);transform:translateY(-1px)}
+.dot.ok{background:var(--green)}.dot.bad{background:var(--red)}.dot.info{background:var(--primary2)}
+.veh-name{font-weight:600;color:var(--text)}
+.plate{display:inline-block;font-family:var(--mono);font-weight:700;font-size:.74rem;letter-spacing:.06em;border:1.5px solid var(--text2);border-radius:4px;padding:1px 6px;margin:2px 0;background:#fff;color:var(--text)}
+.vin{font-family:var(--mono);font-size:.68rem;color:var(--muted);overflow-wrap:anywhere}
+.veh-days{font-size:.72rem;color:var(--muted);font-weight:600}
+.veh-days.warn{color:var(--orange)}.veh-days.late{color:var(--red)}
+.add-link{color:var(--primary2);font-size:.74rem;font-weight:600;border-bottom:1px dashed var(--primary2)}
+.nov-txt{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;color:var(--text);overflow-wrap:anywhere;white-space:pre-line}
+.gone-h{font-size:.9rem;font-weight:700;margin:6px 0 2px}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(13,27,62,.55);display:flex;align-items:flex-start;justify-content:center;padding:max(20px,env(safe-area-inset-top,0px)) 14px 20px;z-index:200;overflow-y:auto}
+.modal{background:#fff;border-radius:var(--r);box-shadow:var(--sh-lg);width:100%;max-width:640px;overflow:hidden}
+.mhdr{background:linear-gradient(135deg,#0d1b3e,#1a3a6e);color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.mtitle{font-family:var(--mono);font-weight:700;font-size:.95rem;overflow-wrap:anywhere}
+.msub{font-size:.7rem;opacity:.7;margin-top:2px}
+.mclose{background:rgba(255,255,255,.12);border:0;color:#fff;width:30px;height:30px;border-radius:var(--rs);font-size:1.2rem;line-height:1;cursor:pointer;flex:none}
+.mclose:hover{background:rgba(255,255,255,.25)}
+.mbody{padding:16px;display:flex;flex-direction:column;gap:16px}
+.sect-t{font-size:.64rem;text-transform:uppercase;letter-spacing:.08em;font-weight:700;color:var(--muted);margin-bottom:8px}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fgrid .full{grid-column:1/-1}
+.fl{display:flex;flex-direction:column;gap:3px;font-size:.7rem;font-weight:600;color:var(--muted);min-width:0}
+.fl .field{width:100%;font-weight:400;color:var(--text)}
+.fl .mono{font-family:var(--mono);text-transform:uppercase;letter-spacing:.04em}
+.hint{font-size:.7rem;color:var(--muted);font-weight:400}
+.hint.err{color:var(--red);font-weight:600}
+.mrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+textarea.field{min-height:74px;resize:vertical;width:100%;font-family:inherit}
+.tl{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.nota{border:1px solid var(--border);border-left:3px solid var(--primary2);border-radius:var(--rs);padding:8px 10px;background:var(--s2)}
+.nota-h{display:flex;justify-content:space-between;gap:8px;font-size:.68rem;color:var(--muted);margin-bottom:2px}
+.nota-h b{color:var(--text2)}
+.nota-t{white-space:pre-wrap;overflow-wrap:anywhere;color:var(--text)}
+.nota-x{background:none;border:0;color:var(--muted2);cursor:pointer;font-size:.68rem;font-weight:600}
+.nota-x:hover,.nota-x.arm{color:var(--red)}
+.resum{background:var(--s2);border:1px solid var(--border);border-radius:var(--rs);padding:8px 10px;font-size:.78rem;display:flex;flex-wrap:wrap;gap:4px 14px}
+.resum b{color:var(--text)}
+
+/* CARGA */
+.load-p{color:var(--muted);font-size:.82rem;margin-bottom:10px}
+.paste{width:100%;min-height:170px;resize:vertical;font-family:var(--mono);font-size:.72rem;border:1.5px solid var(--border2);border-radius:var(--rs);padding:10px;background:var(--s2)}
+.msg{font-size:.78rem;color:var(--muted)}
+.msg.err{color:var(--red);font-weight:600}
+.msg.good{color:var(--green);font-weight:600}
+
+/* TOAST */
+.toasts{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:6px;z-index:300;align-items:center;max-width:92vw}
+.toast{background:var(--primary);color:#fff;padding:9px 16px;border-radius:var(--rs);font-size:.8rem;font-weight:600;box-shadow:var(--sh-lg)}
+.toast.err{background:var(--red)}
+
+/* MOVIL: cada fila pasa a tarjeta */
+@media (max-width:820px){
+  table{min-width:0}
+  thead{display:none}
+  table,tbody,tr,td{display:block}
+  tbody tr{border-bottom:1px solid var(--border);padding:8px 4px;display:grid;grid-template-columns:1fr 1fr;gap:2px 10px}
+  td{border:0;padding:5px 8px;min-width:0}
+  td.r{text-align:left}
+  td.c-part,td.c-veh,td.c-nov{grid-column:1/-1}
+  td.c-part{order:1}td.c-qty{order:2}td.c-val{order:3}td.c-veh{order:4}td.c-date{order:5}td.c-st{order:6}td.c-nov{order:7}
+  td::before{display:block;content:attr(data-label);font-size:.58rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted2);font-weight:700;margin-bottom:1px}
+  td.c-part::before{display:none}
+  tbody tr:hover td{background:transparent}
+  tr.r-new,tr.r-chg{background:inherit}
+  tr.r-new{background:#eaf1ff}tr.r-chg{background:#fff6e2}
+  tr.r-new td,tr.r-chg td{background:transparent}
+  .fgrid{grid-template-columns:1fr}
+  .hstats{width:100%}
+  .hs{flex:1 1 60px}
+}
+
+</style>
+</head>
+<body>
+<header class="header">
+  <div>
+    <div class="htitle">Backorder · Recambios</div>
+    <div class="hsub"><span class="conn" id="connDot"></span><span id="hsub">DAMA · piezas pendientes de entrega</span></div>
+  </div>
+  <div class="hstats" id="hstats"></div>
+</header>
+
+<nav class="tabs" aria-label="Secciones">
+  <button class="tab active" type="button" data-tab="lista" id="tabLista">Pendientes</button>
+  <button class="tab" type="button" data-tab="carga" id="tabCarga">Cargar listado</button>
+</nav>
+
+<main class="main">
+  <section id="viewLista">
+    <div class="banner" id="stale" hidden></div>
+    <div class="toolbar">
+      <label for="daySel">Listado del <select id="daySel"></select></label>
+      <div class="grow"><input type="search" id="q" placeholder="Buscar pieza, pedido, matrícula, bastidor o modelo" aria-label="Buscar"></div>
+      <label for="sortSel">Orden
+        <select id="sortSel">
+          <option value="changes">Cambios primero</option>
+          <option value="date">Llegada prevista</option>
+          <option value="veh">Vehículo más tiempo parado</option>
+          <option value="age">Más antiguas</option>
+          <option value="value">Mayor valor</option>
+        </select>
+      </label>
+      <button class="btn green" type="button" id="btnCsv">Exportar CSV</button>
+    </div>
+    <div class="filters" id="filters" role="group" aria-label="Filtros"></div>
+    <p class="summary" id="summary"></p>
+    <div class="card"><div class="twrap" id="listWrap"></div></div>
+    <div id="goneBox" hidden>
+      <p class="gone-h" id="goneTitle"></p>
+      <p class="summary" id="goneSub"></p>
+      <div class="card"><div class="twrap" id="goneWrap"></div></div>
+    </div>
+  </section>
+
+  <section id="viewCarga" hidden>
+    <div class="card">
+      <div class="card-hdr"><span>Cargar el listado de hoy</span></div>
+      <div class="card-body">
+        <p class="load-p">Pega el backorder tal como sale del sistema, con todas las columnas. La página marca sola lo que cambió respecto al listado anterior y conserva los datos de vehículo y las novedades de cada pieza.</p>
+        <textarea class="paste" id="paste" spellcheck="false" aria-label="Listado de backorder" placeholder="0002486876   000080   ..."></textarea>
+        <div class="mrow" style="margin-top:10px">
+          <label class="fl" for="loadDate" style="flex-direction:row;align-items:center;gap:8px">Fecha del listado <input class="field" type="date" id="loadDate"></label>
+          <button class="btn" type="button" id="btnSave" disabled>Guardar listado</button>
+        </div>
+        <p class="msg" id="loadMsg" style="margin-top:8px"></p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="overlay" id="ov" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+    <div class="mhdr">
+      <div><div class="mtitle" id="mTitle"></div><div class="msub" id="mSub"></div></div>
+      <button class="mclose" type="button" id="mClose" aria-label="Cerrar">&times;</button>
+    </div>
+    <div class="mbody" id="mBody"></div>
+  </div>
+</div>
+<datalist id="dlPlates"></datalist>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script>
+/* Almacén: Firebase Realtime Database (mismo proyecto que las otras páginas) */
+var FB_URL = 'https://accesorios-alcala-default-rtdb.europe-west1.firebasedatabase.app';
+var FB_KEY = 'AIzaSyDApTnRdr3LLFowFDzbu_WfDF4teKT75Wo';
+var DB_BO = 'backorder_v1';
+var Store = (function () {
+  var fdb = null;
+  function ref(p) { return fdb.ref(DB_BO + '/' + p); }
+  return {
+    mode: 'firebase',
+    start: function (h) {
+      try {
+        firebase.initializeApp({ apiKey: FB_KEY, databaseURL: FB_URL, projectId: 'accesorios-alcala' });
+        fdb = firebase.database();
+      } catch (e) { h.onError(e); return; }
+      fdb.ref('.info/connected').on('value', function (s) { h.onConn(!!s.val()); });
+      ref('listados').orderByKey().limitToLast(45).on('value', function (s) {
+        var v = s.val() || {};
+        h.onSnaps(Object.keys(v).map(function (k) { return v[k]; }).filter(function (x) { return x && x.date; }));
+      }, h.onError);
+      ref('info').on('value', function (s) { h.onInfo(s.val() || {}); }, h.onError);
+      ref('notas').on('value', function (s) {
+        var v = s.val() || {}, m = {};
+        Object.keys(v).forEach(function (k) { m[k] = Object.keys(v[k]).map(function (id) { return v[k][id]; }); });
+        h.onNotas(m);
+      }, h.onError);
+    },
+    canLoad: function () { return true; },
+    saveSnap: function (date, body) { return ref('listados/' + date).set(body); },
+    saveInfo: function (key, obj) { return obj ? ref('info/' + key).set(obj) : ref('info/' + key).remove(); },
+    addNota: function (key, n) { return ref('notas/' + key + '/' + n.id).set(n); },
+    delNota: function (key, id) { return ref('notas/' + key + '/' + id).remove(); }
+  };
+})();
+
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var EUR = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
+  var NUM = new Intl.NumberFormat('es-ES');
+  var CLASES = { ZAP: 'Autopart', ZEX: 'Jetparts', ZNRU: 'Urgente NR' };
+  var MARCAS = ['Audi', 'Volkswagen', 'Skoda', 'Seat', 'Cupra', 'VW Comerciales', 'Otra'];
+
+  /* ---------- utilidades ---------- */
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function ls(k, v) {
+    try { if (v === undefined) return localStorage.getItem(k) || ''; localStorage.setItem(k, v); } catch (e) { return ''; }
+    return '';
+  }
+  function isoToDate(iso) { var p = iso.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); }
+  function dayDiff(aIso, bIso) { return Math.round((isoToDate(bIso) - isoToDate(aIso)) / 86400000); }
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function todayIso() { var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function fmtDate(iso) {
+    if (!iso) return '';
+    var t = isoToDate(iso).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }).replace(/\./g, '');
+    return t.charAt(0).toUpperCase() + t.slice(1);
+  }
+  function fmtShort(iso) { return isoToDate(iso).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }).replace(/\./g, ''); }
+  function fmtLong(iso) { return isoToDate(iso).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); }
+  function fmtTs(ts) {
+    var d = new Date(ts);
+    if (isNaN(d)) return '';
+    return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+  function isTodayTs(ts) { var d = new Date(ts); return !isNaN(d) && (d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate())) === todayIso(); }
+  function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
+  function key(r) { return r.p + '-' + r.s; }
+  function toast(msg, err) {
+    var t = document.createElement('div');
+    t.className = 'toast' + (err ? ' err' : '');
+    t.textContent = msg;
+    $('toasts').appendChild(t);
+    setTimeout(function () { t.remove(); }, err ? 5000 : 2600);
+  }
+
+  /* ---------- lectura del listado pegado ---------- */
+  function num(s) { return parseFloat(String(s).replace(/\./g, '').replace(',', '.')) || 0; }
+  function dmy(s) { var m = /^(\d{2})-(\d{2})-(\d{4})$/.exec(s); return m ? m[3] + '-' + m[2] + '-' + m[1] : ''; }
+  var RE = /^(\d{10}) (\d{6}) (?:(Si) )?(.+?) (Pedido .+?\([A-Z]+\)) (\d{2}-\d{2}-\d{4}) (\d+) (\d+) (\d+) ?(.*?) ?(\d{2}-\d{2}-\d{4}) (\d{2}:\d{2}:\d{2}) ([\d.,]+) ([\d.,]+) ([A-Z]{3})(?: (\S+))? (\S+) (\S+)$/;
+  var RE9 = /^(?:(\d+) )?(\d{2}\/\d{2}\/\d{2}|--\/--\/--)?\s*(.*)$/;
+  function parseList(text) {
+    var chunks = String(text).replace(/\r/g, '').split(/(?=^[ \t]*\d{10}[ \t]+\d{6}[ \t])/m)
+      .filter(function (c) { return /^\s*\d{10}\s+\d{6}/.test(c); });
+    var rows = [], bad = [];
+    chunks.forEach(function (c) {
+      var lines = c.split('\n');
+      var s = (lines[0] + ' ' + (lines[1] || '')).replace(/\s+/g, ' ').trim();
+      s = s.replace(/ [\d.]+,\d [\d.]+,\d [\d.]+,\d{2}\b.*$/, '');
+      var m = RE.exec(s);
+      if (!m) { bad.push(s.slice(0, 60)); return; }
+      var f = RE9.exec(m[10].trim());
+      var d = '';
+      if (f[2] && f[2].charAt(0) !== '-') { var q = f[2].split('/'); d = '20' + q[2] + '-' + q[1] + '-' + q[0]; }
+      rows.push({
+        p: m[1], s: m[2], h: m[3] ? 1 : 0, m: m[4], c: /\(([A-Z]+)\)/.exec(m[5])[1],
+        fa: dmy(m[6]), q: +m[7], e: +m[8], b: +m[9], d: d, t: (f[3] || '').trim(),
+        fc: dmy(m[11]), v: num(m[13]), vb: num(m[14]), pc: m[16] || '', u: m[17], tp: m[18]
+      });
+    });
+    return { rows: rows, bad: bad };
+  }
+  function normRow(src) {
+    var r = Object.assign({}, src);
+    r.h = r.h || 0; r.d = r.d || ''; r.t = r.t || ''; r.pc = r.pc || ''; r.fa = r.fa || '';
+    r.b = +r.b || 0; r.e = +r.e || 0; r.q = +r.q || 0; r.v = +r.v || 0; r.vb = +r.vb || 0;
+    return r;
+  }
+
+  /* ---------- comparación entre dos listados ---------- */
+  function diffSnaps(cur, prev) {
+    var info = new Map(), gone = [];
+    if (!prev) {
+      cur.forEach(function (r) { info.set(key(r), { st: 'same', ch: [] }); });
+      return { info: info, gone: gone, hasPrev: false };
+    }
+    var pm = new Map(prev.map(function (r) { return [key(r), r]; }));
+    var cm = new Set();
+    cur.forEach(function (r) {
+      var k = key(r); cm.add(k);
+      var o = pm.get(k);
+      if (!o) { info.set(k, { st: 'new', ch: [] }); return; }
+      var ch = [];
+      if ((o.d || '') !== (r.d || '')) {
+        var kind = !o.d ? 'conf' : !r.d ? 'lost' : (r.d > o.d ? 'late' : 'early');
+        ch.push({ f: 'd', kind: kind, old: o.d || '', now: r.d || '' });
+      }
+      if ((o.t || '') !== (r.t || '')) ch.push({ f: 't', old: o.t || '', now: r.t || '' });
+      if (o.b !== r.b || o.e !== r.e) ch.push({ f: 'q', old: o.b, now: r.b });
+      info.set(k, { st: ch.length ? 'chg' : 'same', ch: ch });
+    });
+    prev.forEach(function (o) { if (!cm.has(key(o))) gone.push(o); });
+    return { info: info, gone: gone, hasPrev: true };
+  }
+  function countChanges(d) {
+    var n = 0, c = 0;
+    d.info.forEach(function (v) { if (v.st === 'new') n++; else if (v.st === 'chg') c++; });
+    return { nuevas: n, cambios: c, salieron: d.gone.length };
+  }
+
+  /* ---------- estado ---------- */
+  var SN = [], INFO = {}, NOTAS = {};
+  var sel = null, tab = 'lista', filter = 'all', query = '', sortBy = 'changes';
+  var loaded = false, loadErr = null, daysKey = '';
+  var parsed = null, armed = false, modalKey = null, canLoad = false;
+  var VIEW = null;
+
+  function curSnap() { return SN.find(function (s) { return s.date === sel; }) || null; }
+  function prevSnap(cur) { var i = SN.indexOf(cur); return i >= 0 && i + 1 < SN.length ? SN[i + 1] : null; }
+  function refDate(cur) { return cur === SN[0] ? todayIso() : cur.date; }
+  function hasVeh(v) { return !!(v && (v.fe || v.marca || v.modelo || v.matricula || v.bastidor)); }
+
+  var raf = 0;
+  function schedule() { if (raf) return; raf = requestAnimationFrame(function () { raf = 0; render(); }); }
+
+  /* ---------- piezas de la interfaz ---------- */
+  function badge(text, cls) { return '<span class="badge ' + cls + '">' + esc(text) + '</span>'; }
+  function statusDot(t) { return /recep/i.test(t) ? 'ok' : /retraso/i.test(t) ? 'bad' : /pendiente/i.test(t) ? 'info' : ''; }
+  function changeBadge(c) {
+    if (c.f === 'd') {
+      return c.kind === 'early' ? badge('Adelantada', 'b-ok') : c.kind === 'late' ? badge('Retrasada', 'b-bad') :
+        c.kind === 'conf' ? badge('Fecha confirmada', 'b-ok') : badge('Fecha perdida', 'b-bad');
+    }
+    return c.f === 't' ? badge('Estado', 'b-chg') : badge('Cantidad', 'b-chg');
+  }
+  function lastNota(k) { var n = NOTAS[k] || []; return n.length ? n[n.length - 1] : null; }
+
+  function rowHtml(r, inf, ref, mode) {
+    var k = key(r), vi = INFO[k] || null, ns = NOTAS[k] || [], last = ns.length ? ns[ns.length - 1] : null;
+    var cls = (inf.st === 'new' ? 'r-new' : inf.st === 'chg' ? 'r-chg' : '') + (mode === 'gone' ? ' r-gone' : '');
+    var dch = inf.ch.filter(function (c) { return c.f === 'd'; })[0];
+    var tch = inf.ch.filter(function (c) { return c.f === 't'; })[0];
+    var qch = inf.ch.filter(function (c) { return c.f === 'q'; })[0];
+
+    var tags = '';
+    if (mode === 'gone') tags += badge('Salió', 'b-gone');
+    if (inf.st === 'new') tags += badge('Nueva', 'b-new');
+    inf.ch.forEach(function (c) { tags += changeBadge(c); });
+    if (r.h) tags += badge('Hotline', 'b-hot');
+    if (last && isTodayTs(last.ts)) tags += badge('Novedad hoy', 'b-nov');
+    var part = (tags ? '<div class="tags">' + tags + '</div>' : '') + '<div class="mat">' + esc(r.m) + '</div>' +
+      '<div class="sub">Ped. ' + esc(r.p) + '/' + (+r.s) + ' · ' + esc(CLASES[r.c] || r.c) + '</div>';
+    if (r.fa) {
+      var age = dayDiff(r.fa, ref);
+      part += '<div class="sub"' + (age > 60 ? ' style="color:var(--orange)"' : '') + '>' + (age <= 0 ? 'Asignado hoy' : 'Asignado hace ' + plural(age, 'día', 'días')) + '</div>';
+    }
+
+    var qty = qch ? '<div class="big"><del>×' + qch.old + '</del> <ins>×' + qch.now + '</ins></div>' : '<div class="big">×' + r.b + '</div>';
+    if (r.e > 0) qty += '<div class="sub">entregadas ' + r.e + ' de ' + r.q + '</div>';
+    else if (r.q !== r.b) qty += '<div class="sub">pedidas ' + r.q + '</div>';
+
+    var veh;
+    if (hasVeh(vi)) {
+      veh = '';
+      var nm = ((vi.marca || '') + ' ' + (vi.modelo || '')).trim();
+      if (nm) veh += '<div class="veh-name">' + esc(nm) + '</div>';
+      if (vi.matricula) veh += '<span class="plate">' + esc(vi.matricula) + '</span>';
+      if (vi.bastidor) veh += '<div class="vin">' + esc(vi.bastidor) + '</div>';
+      if (vi.fe) {
+        var dd = dayDiff(vi.fe, todayIso());
+        veh += '<div class="veh-days' + (dd >= 14 ? ' late' : dd >= 7 ? ' warn' : '') + '">Entró ' + esc(fmtDate(vi.fe)) + ' · ' + (dd <= 0 ? 'hoy' : plural(dd, 'día', 'días')) + '</div>';
+      }
+    } else {
+      veh = '<span class="add-link">+ Añadir vehículo</span>';
+    }
+
+    var dline;
+    if (dch) dline = '<del>' + esc(dch.old ? fmtDate(dch.old) : 'sin fecha') + '</del> → <ins>' + esc(dch.now ? fmtDate(dch.now) : 'sin fecha') + '</ins>';
+    else if (r.d) dline = '<span class="dt">' + esc(fmtDate(r.d)) + '</span>';
+    else dline = '<span class="none">Sin fecha</span>';
+    if (r.d) {
+      var n = dayDiff(ref, r.d);
+      dline += '<div class="rel' + (n < 0 ? ' late' : n <= 1 ? ' soon' : '') + '">' +
+        (n < 0 ? 'vencida hace ' + plural(-n, 'día', 'días') : n === 0 ? 'hoy' : n === 1 ? 'mañana' : 'en ' + n + ' días') + '</div>';
+    }
+
+    var stTxt;
+    if (tch) stTxt = (tch.old ? '<del>' + esc(tch.old) + '</del> → ' : '') + '<ins>' + esc(tch.now || 'sin estado') + '</ins>';
+    else stTxt = r.t ? esc(r.t) : '<span class="none">Sin información</span>';
+    var st = '<div class="st"><span class="dot ' + statusDot(r.t) + '"></span><span>' + stTxt + '</span></div>';
+
+    var nov;
+    if (last) {
+      nov = '<div class="nov-txt">' + esc(last.texto) + '</div><div class="sub">' + esc(last.autor || '') + (last.autor ? ' · ' : '') + esc(fmtTs(last.ts)) +
+        (ns.length > 1 ? ' · ' + ns.length + ' novedades' : '') + '</div>';
+    } else nov = '<span class="add-link">+ Añadir novedad</span>';
+
+    var val = '<div class="val">' + EUR.format(r.vb) + '</div>' + (r.b > 1 ? '<div class="sub">' + EUR.format(r.v) + ' / ud</div>' : '');
+
+    return '<tr class="' + cls + '" data-k="' + esc(k) + '" data-m="' + mode + '" tabindex="0">' +
+      '<td class="c-part" data-label="Pieza">' + part + '</td>' +
+      '<td class="r c-qty" data-label="Cant.">' + qty + '</td>' +
+      '<td class="c-veh" data-label="Vehículo">' + veh + '</td>' +
+      '<td class="c-date" data-label="Llegada prevista">' + dline + '</td>' +
+      '<td class="c-st" data-label="Estado">' + st + '</td>' +
+      '<td class="c-nov" data-label="Última novedad">' + nov + '</td>' +
+      '<td class="r c-val" data-label="Valor">' + val + '</td></tr>';
+  }
+  var THEAD = '<thead><tr><th>Pieza</th><th class="r">Cant.</th><th>Vehículo</th><th>Llegada prevista</th><th>Estado</th><th>Última novedad</th><th class="r">Valor</th></tr></thead>';
+  function emptyHtml(t, s) { return '<div class="empty"><strong>' + esc(t) + '</strong>' + esc(s) + '</div>'; }
+
+  /* ---------- pintado ---------- */
+  function rank(i) { return i.st === 'new' ? 0 : i.st === 'chg' ? 1 : 2; }
+  function dKey(r) { return r.d || '9999-99-99'; }
+
+  function render() {
+    $('viewLista').hidden = tab !== 'lista';
+    $('viewCarga').hidden = tab !== 'carga';
+    $('tabLista').classList.toggle('active', tab === 'lista');
+    $('tabCarga').classList.toggle('active', tab === 'carga');
+    $('tabCarga').hidden = !canLoad;
+    if (tab === 'carga') { updateSaveBtn(); }
+    renderLista();
+  }
+
+  function renderLista() {
+    var wrap = $('listWrap');
+    var cur = curSnap();
+    if (!loaded && !loadErr) { wrap.innerHTML = emptyHtml('Cargando el listado…', ''); return; }
+    if (loadErr) {
+      wrap.innerHTML = emptyHtml('No se pudo leer el listado', 'Comprueba la conexión y recarga la página.');
+      $('hstats').innerHTML = ''; $('filters').innerHTML = ''; $('summary').textContent = ''; $('goneBox').hidden = true; return;
+    }
+    if (!cur) {
+      $('hstats').innerHTML = ''; $('filters').innerHTML = ''; $('summary').textContent = ''; $('goneBox').hidden = true; $('stale').hidden = true;
+      wrap.innerHTML = emptyHtml('Todavía no hay ningún listado', canLoad ? 'Ve a "Cargar listado", pega el backorder y guarda.' : 'En cuanto se cargue el primero aparecerá aquí.');
+      return;
+    }
+    var prev = prevSnap(cur);
+    var d = diffSnaps(cur.rows, prev ? prev.rows : null);
+    var ref = refDate(cur);
+    var rows = cur.rows;
+
+    /* aviso de listado antiguo */
+    var stale = $('stale');
+    if (cur === SN[0] && cur.date < todayIso()) {
+      stale.hidden = false;
+      stale.textContent = 'Este listado es del ' + fmtLong(cur.date) + '. Todavía no se ha cargado el de hoy.';
+    } else stale.hidden = true;
+
+    /* selector de día */
+    var dk = SN.map(function (s) { return s.date; }).join(',');
+    if (dk !== daysKey) {
+      daysKey = dk;
+      $('daySel').innerHTML = SN.map(function (s, i) { return '<option value="' + s.date + '">' + esc(fmtShort(s.date)) + (i === 0 ? ' (último)' : '') + '</option>'; }).join('');
+    }
+    $('daySel').value = cur.date;
+
+    /* cifras de cabecera */
+    var units = 0, value = 0, nodate = 0;
+    rows.forEach(function (r) { units += r.b; value += r.vb; if (!r.d) nodate++; });
+    var cc = countChanges(d);
+    var ch = cc.nuevas + cc.cambios;
+    $('hstats').innerHTML =
+      '<button class="hs" type="button" data-f="all"><div class="hs-val">' + rows.length + '</div><div class="hs-lbl">Líneas</div></button>' +
+      '<button class="hs" type="button" data-f="all"><div class="hs-val">' + NUM.format(units) + '</div><div class="hs-lbl">Unidades</div></button>' +
+      '<button class="hs" type="button" data-f="all"><div class="hs-val">' + EUR.format(value) + '</div><div class="hs-lbl">Valor pendiente</div></button>' +
+      '<button class="hs" type="button" data-f="nodate"><div class="hs-val">' + nodate + '</div><div class="hs-lbl">Sin fecha</div></button>' +
+      (d.hasPrev ? '<button class="hs' + (ch ? ' hot' : '') + '" type="button" data-f="chg"><div class="hs-val">' + ch + '</div><div class="hs-lbl">Cambios hoy</div></button>' : '');
+
+    /* filtros */
+    var cnt = { all: rows.length, new: 0, chg: 0, nodate: nodate, recep: 0, hot: 0, veh: 0, noveh: 0 };
+    rows.forEach(function (r) {
+      var i = d.info.get(key(r));
+      if (i.st === 'new') cnt.new++;
+      if (i.st === 'chg') cnt.chg++;
+      if (/recep/i.test(r.t)) cnt.recep++;
+      if (r.h) cnt.hot++;
+      if (hasVeh(INFO[key(r)])) cnt.veh++; else cnt.noveh++;
+    });
+    var defs = [['all', 'Todas', ''], ['new', 'Nuevas', 'new'], ['chg', 'Con cambios', 'warn'], ['nodate', 'Sin fecha', 'danger'],
+      ['recep', 'En recepción', 'ok'], ['hot', 'Hotline', ''], ['veh', 'Con vehículo', ''], ['noveh', 'Sin vehículo', '']];
+    $('filters').innerHTML = defs.map(function (f) {
+      return '<button class="fbtn ' + f[2] + (filter === f[0] ? ' active' : '') + '" type="button" data-f="' + f[0] + '" aria-pressed="' + (filter === f[0]) + '">' + f[1] + '<span class="n">' + cnt[f[0]] + '</span></button>';
+    }).join('');
+
+    $('summary').textContent = d.hasPrev
+      ? 'Frente al listado del ' + fmtLong(prev.date) + ': ' + plural(cc.nuevas, 'línea nueva', 'líneas nuevas') + ', ' + plural(cc.cambios, 'con cambios', 'con cambios') + ' y ' + plural(cc.salieron, 'salió', 'salieron') + ' del backorder. Pulsa una pieza para ver o añadir vehículo y novedades.'
+      : 'Es el primer listado guardado. Desde el siguiente se marcará lo que cambie. Pulsa una pieza para añadir vehículo y novedades.';
+
+    /* filtrar y ordenar */
+    var q = query.trim().toLowerCase();
+    var shown = rows.filter(function (r) {
+      var k = key(r), i = d.info.get(k), v = INFO[k];
+      if (filter === 'new' && i.st !== 'new') return false;
+      if (filter === 'chg' && i.st !== 'chg') return false;
+      if (filter === 'nodate' && r.d) return false;
+      if (filter === 'recep' && !/recep/i.test(r.t)) return false;
+      if (filter === 'hot' && !r.h) return false;
+      if (filter === 'veh' && !hasVeh(v)) return false;
+      if (filter === 'noveh' && hasVeh(v)) return false;
+      if (q) {
+        var hay = (r.m + ' ' + r.p + ' ' + (v ? (v.matricula || '') + ' ' + (v.bastidor || '') + ' ' + (v.modelo || '') + ' ' + (v.marca || '') : '')).toLowerCase();
+        if (hay.indexOf(q) < 0) return false;
+      }
+      return true;
+    });
+    shown.sort(function (a, b) {
+      var ia = d.info.get(key(a)), ib = d.info.get(key(b)), x;
+      if (sortBy === 'changes') { x = rank(ia) - rank(ib); if (x) return x; x = dKey(a).localeCompare(dKey(b)); if (x) return x; }
+      else if (sortBy === 'date') { x = dKey(a).localeCompare(dKey(b)); if (x) return x; }
+      else if (sortBy === 'veh') {
+        var fa = (INFO[key(a)] || {}).fe || '9999', fb = (INFO[key(b)] || {}).fe || '9999';
+        x = fa.localeCompare(fb); if (x) return x;
+      }
+      else if (sortBy === 'age') { x = (a.fa || '9999').localeCompare(b.fa || '9999'); if (x) return x; }
+      else if (sortBy === 'value') { if (b.vb !== a.vb) return b.vb - a.vb; }
+      return a.p.localeCompare(b.p);
+    });
+    wrap.innerHTML = shown.length
+      ? '<table>' + THEAD + '<tbody>' + shown.map(function (r) { return rowHtml(r, d.info.get(key(r)), ref, 'cur'); }).join('') + '</tbody></table>'
+      : emptyHtml('Ninguna línea coincide', 'Cambia el filtro o la búsqueda.');
+    VIEW = { cur: cur, prev: prev, d: d };
+
+    /* líneas que salieron */
+    if (d.hasPrev && d.gone.length) {
+      $('goneBox').hidden = false;
+      $('goneTitle').textContent = 'Ya no están en backorder (' + d.gone.length + ')';
+      $('goneSub').textContent = 'Estaban en el listado del ' + fmtLong(prev.date) + ' y ya no aparecen: recibidas, servidas o anuladas.';
+      $('goneWrap').innerHTML = '<table>' + THEAD + '<tbody>' + d.gone.map(function (r) { return rowHtml(r, { st: 'same', ch: [] }, prev.date, 'gone'); }).join('') + '</tbody></table>';
+    } else $('goneBox').hidden = true;
+
+    /* matrículas conocidas para autocompletar */
+    var plates = {};
+    Object.keys(INFO).forEach(function (k) { if (INFO[k] && INFO[k].matricula) plates[INFO[k].matricula] = 1; });
+    var pk = Object.keys(plates).sort().join('|');
+    if ($('dlPlates').getAttribute('data-k') !== pk) {
+      $('dlPlates').setAttribute('data-k', pk);
+      $('dlPlates').innerHTML = Object.keys(plates).sort().map(function (p) { return '<option value="' + esc(p) + '">'; }).join('');
+    }
+  }
+
+  /* ---------- ficha de la pieza ---------- */
+  function findRow(k) {
+    var rows = [];
+    if (VIEW) { rows = VIEW.cur.rows.concat(VIEW.prev ? VIEW.prev.rows : []); }
+    return rows.filter(function (r) { return key(r) === k; })[0] || null;
+  }
+  function openFicha(k) {
+    var r = findRow(k);
+    if (!r) return;
+    modalKey = k;
+    var v = INFO[k] || {};
+    $('mTitle').textContent = r.m;
+    $('mSub').textContent = 'Pedido ' + r.p + ' / ' + (+r.s) + ' · ' + (CLASES[r.c] || r.c);
+    var marcas = MARCAS.map(function (m) { return '<option' + (v.marca === m ? ' selected' : '') + '>' + esc(m) + '</option>'; }).join('');
+    if (v.marca && MARCAS.indexOf(v.marca) < 0) marcas += '<option selected>' + esc(v.marca) + '</option>';
+    $('mBody').innerHTML =
+      '<div class="resum"><span><b>×' + r.b + '</b> pendientes</span><span>' + esc(r.t || 'Sin estado') + '</span><span>' + (r.d ? 'Llegada ' + esc(fmtDate(r.d)) : 'Sin fecha prevista') + '</span><span>' + EUR.format(r.vb) + '</span></div>' +
+      '<div><div class="sect-t">Vehículo</div><div class="fgrid">' +
+      '<label class="fl" for="fFe">Fecha de entrada<input class="field" type="date" id="fFe" value="' + esc(v.fe || '') + '"></label>' +
+      '<label class="fl" for="fMarca">Marca<select class="field" id="fMarca"><option value="">—</option>' + marcas + '</select></label>' +
+      '<label class="fl" for="fModelo">Modelo<input class="field" type="text" id="fModelo" value="' + esc(v.modelo || '') + '" placeholder="Ej. Golf VIII, Ateca…" autocomplete="off"></label>' +
+      '<label class="fl" for="fMat">Matrícula<input class="field mono" type="text" id="fMat" list="dlPlates" value="' + esc(v.matricula || '') + '" placeholder="0000ABC" autocomplete="off"></label>' +
+      '<label class="fl full" for="fVin">Bastidor (VIN)<input class="field mono" type="text" id="fVin" value="' + esc(v.bastidor || '') + '" placeholder="17 caracteres" autocomplete="off" maxlength="17"><span class="hint" id="vinHint">Si la matrícula ya está en otra pieza, se rellenan sola marca, modelo y bastidor.</span></label>' +
+      '</div><div class="mrow" style="margin-top:10px"><button class="btn" type="button" id="bSaveV">Guardar vehículo</button><button class="btn ghost" type="button" id="bClearV">Quitar vehículo</button></div></div>' +
+      '<div><div class="sect-t">Novedades del estado</div>' +
+      '<label class="fl" for="fNota">Nueva novedad<textarea class="field" id="fNota" placeholder="Ej. Proveedor confirma entrega el viernes. Cliente avisado."></textarea></label>' +
+      '<div class="mrow" style="margin-top:8px"><label class="fl" for="fAutor" style="flex:1 1 140px">Tu nombre<input class="field" type="text" id="fAutor" value="' + esc(ls('bo_autor')) + '" placeholder="Quién lo anota" autocomplete="off"></label>' +
+      '<button class="btn" type="button" id="bAddNota" style="align-self:flex-end">Añadir novedad</button></div>' +
+      '<div class="tl" id="notasList"></div></div>';
+    renderNotas();
+    checkVin();
+    $('ov').hidden = false;
+    document.body.style.overflow = 'hidden';
+  }
+  function closeFicha() { modalKey = null; $('ov').hidden = true; document.body.style.overflow = ''; }
+  function renderNotas() {
+    var box = $('notasList');
+    if (!box || !modalKey) return;
+    var ns = (NOTAS[modalKey] || []).slice().reverse();
+    box.innerHTML = ns.length ? ns.map(function (n) {
+      return '<div class="nota"><div class="nota-h"><span><b>' + esc(n.autor || 'Sin nombre') + '</b> · ' + esc(fmtTs(n.ts)) + '</span><button class="nota-x" type="button" data-del="' + esc(n.id) + '">Borrar</button></div><div class="nota-t">' + esc(n.texto) + '</div></div>';
+    }).join('') : '<p class="sub">Todavía no hay novedades de esta pieza.</p>';
+  }
+  function cleanVin(s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+  function checkVin() {
+    var i = $('fVin'), h = $('vinHint');
+    if (!i) return;
+    var v = cleanVin(i.value);
+    if (v && !/^[A-HJ-NPR-Z0-9]{17}$/.test(v)) {
+      h.className = 'hint err';
+      h.textContent = v.length + ' de 17 caracteres' + (/[IOQ]/.test(v) ? ' · el bastidor no lleva I, O ni Q' : '') + '. Se guarda igual.';
+    } else {
+      h.className = 'hint';
+      h.textContent = v ? 'Bastidor correcto.' : 'Si la matrícula ya está en otra pieza, se rellenan sola marca, modelo y bastidor.';
+    }
+  }
+  function fillFromPlate() {
+    var mat = $('fMat').value.toUpperCase().replace(/[\s-]/g, '');
+    $('fMat').value = mat;
+    if (!mat) return;
+    var other = Object.keys(INFO).map(function (k) { return INFO[k]; }).filter(function (v) { return v && v.matricula === mat; })[0];
+    if (!other) return;
+    var changed = false;
+    [['fMarca', 'marca'], ['fModelo', 'modelo'], ['fVin', 'bastidor'], ['fFe', 'fe']].forEach(function (p) {
+      var el = $(p[0]);
+      if (el && !el.value && other[p[1]]) { el.value = other[p[1]]; changed = true; }
+    });
+    if (changed) { checkVin(); toast('Datos del vehículo copiados de otra pieza'); }
+  }
+  function saveVeh(clear) {
+    if (!modalKey) return;
+    var o = clear ? null : {
+      fe: $('fFe').value || '', marca: $('fMarca').value || '', modelo: $('fModelo').value.trim(),
+      matricula: $('fMat').value.toUpperCase().replace(/[\s-]/g, ''), bastidor: cleanVin($('fVin').value),
+      upd: new Date().toISOString(), by: $('fAutor').value.trim()
+    };
+    if (o && !hasVeh(o)) o = null;
+    var k = modalKey;
+    Store.saveInfo(k, o).then(function () {
+      toast(o ? 'Vehículo guardado' : 'Vehículo quitado');
+      if (modalKey === k) closeFicha();
+    }, function (e) { toast('No se pudo guardar' + (e && e.code ? ' (' + e.code + ')' : ''), true); });
+  }
+  function addNota() {
+    if (!modalKey) return;
+    var t = $('fNota').value.trim();
+    if (!t) { toast('Escribe la novedad antes de añadirla', true); return; }
+    var autor = $('fAutor').value.trim();
+    ls('bo_autor', autor);
+    var n = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ts: new Date().toISOString(), autor: autor, texto: t };
+    var btn = $('bAddNota'); btn.disabled = true;
+    Store.addNota(modalKey, n).then(function () {
+      $('fNota').value = ''; btn.disabled = false; toast('Novedad añadida');
+    }, function (e) { btn.disabled = false; toast('No se pudo añadir' + (e && e.code ? ' (' + e.code + ')' : ''), true); });
+  }
+
+  /* ---------- carga del listado ---------- */
+  function setMsg(t, c) { $('loadMsg').textContent = t; $('loadMsg').className = 'msg' + (c ? ' ' + c : ''); }
+  function updateSaveBtn() {
+    var date = $('loadDate').value;
+    var ok = !!(parsed && parsed.rows.length && !parsed.bad.length && date);
+    var b = $('btnSave'); b.disabled = !ok;
+    var exists = SN.some(function (s) { return s.date === date; });
+    b.textContent = ok && exists ? (armed ? 'Confirmar: sustituir el del ' + fmtShort(date) : 'Sustituir listado de ese día') : 'Guardar listado';
+  }
+  function previewPaste() {
+    armed = false;
+    var text = $('paste').value;
+    if (!text.trim()) { parsed = null; setMsg(''); updateSaveBtn(); return; }
+    parsed = parseList(text);
+    if (!parsed.rows.length) { setMsg('No se reconoció ninguna línea. Pega el listado completo, con las columnas.', 'err'); updateSaveBtn(); return; }
+    if (parsed.bad.length) { setMsg(plural(parsed.bad.length, 'línea no se pudo leer', 'líneas no se pudieron leer') + ' (empieza por: ' + parsed.bad[0] + '). No se guarda hasta que se lean todas.', 'err'); updateSaveBtn(); return; }
+    var date = $('loadDate').value;
+    var base = SN.filter(function (s) { return s.date < date; })[0] || null;
+    var units = parsed.rows.reduce(function (a, r) { return a + r.b; }, 0);
+    var value = parsed.rows.reduce(function (a, r) { return a + r.vb; }, 0);
+    var t = plural(parsed.rows.length, 'línea', 'líneas') + ' · ' + plural(units, 'unidad', 'unidades') + ' · ' + EUR.format(value);
+    if (base) { var c = countChanges(diffSnaps(parsed.rows, base.rows)); t += ' · frente al ' + fmtShort(base.date) + ': ' + plural(c.nuevas, 'nueva', 'nuevas') + ', ' + plural(c.cambios, 'con cambios', 'con cambios') + ', ' + plural(c.salieron, 'salió', 'salieron'); }
+    setMsg(t, 'good');
+    updateSaveBtn();
+  }
+  function saveSnap() {
+    var date = $('loadDate').value;
+    if (!parsed || !parsed.rows.length || parsed.bad.length || !date) return;
+    var exists = SN.some(function (s) { return s.date === date; });
+    if (exists && !armed) { armed = true; updateSaveBtn(); return; }
+    var body = { date: date, rows: parsed.rows, savedAt: new Date().toISOString() };
+    $('btnSave').disabled = true;
+    Store.saveSnap(date, body).then(function () {
+      sel = date; armed = false; parsed = null; $('paste').value = '';
+      setMsg('Listado del ' + fmtShort(date) + ' guardado. Todos lo ven ya actualizado.', 'good');
+      tab = 'lista'; schedule();
+    }, function (e) { setMsg('No se pudo guardar' + (e && e.code ? ' (' + e.code + ')' : '') + '. Inténtalo otra vez.', 'err'); updateSaveBtn(); });
+  }
+
+  /* ---------- exportar ---------- */
+  function exportCsv() {
+    if (!VIEW) return;
+    var cur = VIEW.cur;
+    var head = ['Pedido', 'Pos', 'Material', 'Clase', 'Cant. backorder', 'Fecha prevista', 'Estado', 'Valor BO', 'Marca', 'Modelo', 'Matricula', 'Bastidor', 'Entrada vehiculo', 'Ultima novedad'];
+    function q(s) { return '"' + String(s == null ? '' : s).replace(/"/g, '""') + '"'; }
+    var lines = [head.map(q).join(';')];
+    cur.rows.forEach(function (r) {
+      var v = INFO[key(r)] || {}, n = lastNota(key(r));
+      lines.push([r.p, r.s, r.m, CLASES[r.c] || r.c, r.b, r.d, r.t, String(r.vb).replace('.', ','), v.marca, v.modelo, v.matricula, v.bastidor, v.fe,
+        n ? fmtTs(n.ts) + ' ' + (n.autor || '') + ': ' + n.texto : ''].map(q).join(';'));
+    });
+    var blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'backorder-' + cur.date + '.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+  }
+
+  /* ---------- eventos ---------- */
+  document.addEventListener('click', function (e) {
+    var t = e.target;
+    var tabBtn = t.closest('[data-tab]');
+    if (tabBtn) { tab = tabBtn.getAttribute('data-tab'); render(); return; }
+    var f = t.closest('[data-f]');
+    if (f) { filter = f.getAttribute('data-f'); tab = 'lista'; render(); if (f.classList.contains('hs')) window.scrollTo({ top: 0 }); return; }
+    var tr = t.closest('tr[data-k]');
+    if (tr) { openFicha(tr.getAttribute('data-k')); return; }
+    var del = t.closest('[data-del]');
+    if (del && modalKey) {
+      if (!del.classList.contains('arm')) { del.classList.add('arm'); del.textContent = '¿Seguro? Pulsa otra vez'; return; }
+      Store.delNota(modalKey, del.getAttribute('data-del')).then(function () { toast('Novedad borrada'); }, function () { toast('No se pudo borrar', true); });
+      return;
+    }
+    if (t.id === 'bSaveV') saveVeh(false);
+    else if (t.id === 'bClearV') saveVeh(true);
+    else if (t.id === 'bAddNota') addNota();
+    else if (t.id === 'mClose' || t.id === 'ov') closeFicha();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && modalKey) closeFicha();
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('tr[data-k]')) { e.preventDefault(); openFicha(e.target.getAttribute('data-k')); }
+  });
+  document.addEventListener('input', function (e) {
+    if (e.target.id === 'fVin') { e.target.value = cleanVin(e.target.value); checkVin(); }
+    if (e.target.id === 'fMat') e.target.value = e.target.value.toUpperCase();
+  });
+  document.addEventListener('change', function (e) { if (e.target.id === 'fMat') fillFromPlate(); });
+  $('daySel').addEventListener('change', function (e) { sel = e.target.value; render(); });
+  $('sortSel').addEventListener('change', function (e) { sortBy = e.target.value; render(); });
+  $('q').addEventListener('input', function (e) { query = e.target.value; render(); });
+  $('paste').addEventListener('input', previewPaste);
+  $('loadDate').addEventListener('change', previewPaste);
+  $('btnSave').addEventListener('click', saveSnap);
+  $('btnCsv').addEventListener('click', exportCsv);
+  $('loadDate').value = todayIso();
+  if (Store.mode === 'artifact') $('btnCsv').hidden = true;
+  render();
+
+  Promise.resolve(Store.canLoad()).then(function (ok) { canLoad = !!ok; render(); });
+  Store.start({
+    onSnaps: function (arr) {
+      SN = arr.map(function (s) { s.rows = (Array.isArray(s.rows) ? s.rows : Object.values(s.rows || {})).map(normRow); return s; })
+        .sort(function (a, b) { return b.date.localeCompare(a.date); });
+      if (!sel || !SN.some(function (s) { return s.date === sel; })) sel = SN.length ? SN[0].date : null;
+      loaded = true; loadErr = null; schedule();
+    },
+    onInfo: function (m) { INFO = m || {}; schedule(); },
+    onNotas: function (m) {
+      NOTAS = {};
+      Object.keys(m || {}).forEach(function (k) { NOTAS[k] = (m[k] || []).filter(Boolean).sort(function (a, b) { return String(a.ts).localeCompare(String(b.ts)); }); });
+      schedule(); renderNotas();
+    },
+    onConn: function (b) { $('connDot').classList.toggle('on', !!b); },
+    onError: function (err) { loadErr = err || true; loaded = true; schedule(); }
+  });
+})();
+
+</script>
+</body>
+</html>
